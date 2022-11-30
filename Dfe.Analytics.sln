@@ -9,7 +9,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{324AABEE-3
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dfe.Analytics", "src\Dfe.Analytics\Dfe.Analytics.csproj", "{A81151B7-A030-493B-8BEF-F96091E1460E}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dfe.Analytics.Tests", "test\Dfe.Analytics.Tests\Dfe.Analytics.Tests.csproj", "{8511B92F-902C-4255-A8BA-8C53B4D7D60E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dfe.Analytics.AspNetCore.Tests", "test\Dfe.Analytics.AspNetCore.Tests\Dfe.Analytics.AspNetCore.Tests.csproj", "{8511B92F-902C-4255-A8BA-8C53B4D7D60E}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{2BC55541-72D6-4089-B710-F0CDEE9AD2E3}"
 	ProjectSection(SolutionItems) = preProject
