@@ -1,0 +1,45 @@
+name: ci
+
+on:
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+    - main
+
+jobs:
+  build:
+
+    name: "Build & package"
+    runs-on: ubuntu-latest
+
+    env:
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Restore
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Test
+      run: dotnet test test/Dfe.Analytics.AspNetCore.Tests/ --configuration Release --no-build
+
+    - name: Package
+      run: dotnet pack src/Dfe.Analytics.AspNetCore/ --configuration Release --no-build
+      env:
+        MINVERBUILDMETADATA: ${{ env.GITHUB_RUN_NUMBER }}
+
+    - name: Publish package artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: Dfe.Analytics.AspNetCore.nupkg
+        path: |
+          src/Dfe.Analytics.AspNetCore/bin/Release/*.nupkg
+          src/Dfe.Analytics.AspNetCore/bin/Release/*.snupkg
+        if-no-files-found: error
