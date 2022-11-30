@@ -1,9 +1,8 @@
-using Dfe.Analytics.AspNetCore;
 using Google.Cloud.BigQuery.V2;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Moq;
 
-namespace Dfe.Analytics.Tests;
+namespace Dfe.Analytics.AspNetCore.Tests;
 
 public class IntegrationTests : IClassFixture<IntegrationTestsApplicationFactory>
 {
