@@ -1,13 +1,36 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/DFE-Digital/dfe-analytics-dotnet</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/DFE-Digital/dfe-analytics-dotnet</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <Description>A port of the DfE Analytics gem for .NET.</Description>
+    <MinVerTagPrefix>v</MinVerTagPrefix>
+    <MinVerMinimumMajorMinor>0.2</MinVerMinimumMajorMinor>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>
   
   <ItemGroup>
-    <PackageReference Include="Google.Cloud.BigQuery.V2" Version="$(BigQueryPackageVersion)" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" PrivateAssets="all" />
+    <PackageReference Include="Google.Cloud.BigQuery.V2" Version="[3.0,4.0)" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="[8.0,9.0)" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="[8.0,9.0)" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="[8.0,9.0)" />
+    <PackageReference Include="MinVer" Version="4.2.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="$(RepoRoot)README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+  
 </Project>

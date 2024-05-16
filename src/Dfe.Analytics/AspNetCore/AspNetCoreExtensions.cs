@@ -9,7 +9,7 @@ namespace Dfe.Analytics.AspNetCore;
 /// <summary>
 /// Extension methods for using DfE Analytics in an ASP.NET Core application.
 /// </summary>
-public static class Extensions
+public static class AspNetCoreExtensions
 {
     /// <summary>
     /// Adds DfE Analytics services to the specified <see cref="IServiceCollection"/>.
