@@ -12,7 +12,6 @@ on:
 
 jobs:
   build:
-
     name: "Build & package"
     runs-on: ubuntu-latest
 
@@ -56,3 +55,36 @@ jobs:
           src/Dfe.Analytics.AspNetCore/bin/Release/*.nupkg
           src/Dfe.Analytics.AspNetCore/bin/Release/*.snupkg
         if-no-files-found: error
+
+  check_versions:
+    name: "Check library version compatibility"
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Create app directory
+      run: |
+        mkdir app && cd app
+        mkdir lib
+
+    - name: Download Dfe.Analytics.Common.nupkg artifact
+      uses: actions/download-artifact@v2
+      with:
+        name: Dfe.Analytics.Common.nupkg
+        path: app/lib
+
+    - name: Download Dfe.Analytics.AspNetCore.nupkg artifact
+      uses: actions/download-artifact@v2
+      with:
+        name: Dfe.Analytics.AspNetCore.nupkg
+        path: app/lib
+
+    - name: Create new app
+      run : |
+        cd app
+
+        dotnet new console
+        dotnet add package Google.Cloud.BigQuery.V2
+        dotnet add package Dfe.Analytics.AspNetCore --source lib --prerelease
