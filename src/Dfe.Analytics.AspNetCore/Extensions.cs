@@ -16,7 +16,7 @@ public static class Extensions
     /// </summary>
     /// <param name="services">The <see cref="IServiceCollection" /> to add services to.</param>
     /// <param name="setupAction">
-    /// An <see cref="Action{DfeAnalyticsOptions}"/> to configure the provided /// <see cref="DfeAnalyticsOptions"/>.
+    /// An <see cref="Action{DfeAnalyticsOptions}"/> to configure the provided <see cref="DfeAnalyticsOptions"/>.
     /// </param>
     /// <returns>The <see cref="IServiceCollection"/> so that additional calls can be chained.</returns>
     public static IServiceCollection AddDfeAnalytics(
