@@ -4,41 +4,26 @@
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <RootNamespace>Dfe.Analytics</RootNamespace>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/DFE-Digital/dfe-analytics-dotnet</PackageProjectUrl>
     <RepositoryUrl>https://github.com/DFE-Digital/dfe-analytics-dotnet</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <Description>A port of the DfE Analytics gem that logs web requests to Google BigQuery for ASP.NET Core.</Description>
-    <MinVerTagPrefix>aspnetcore-v</MinVerTagPrefix>
+    <Description>Common components for a port of the DfE Analytics gem.</Description>
+    <MinVerTagPrefix>common-v</MinVerTagPrefix>
     <MinVerMinimumMajorMinor>0.2</MinVerMinimumMajorMinor>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>
-
+  
   <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
     <PackageReference Include="MinVer" Version="4.2.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Google.Cloud.BigQuery.V2" Version="[3.0,4.0)" />
   </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\Dfe.Analytics.Common\Dfe.Analytics.Common.csproj" PackageVersion="~" />
-  </ItemGroup>
-
-  <!-- https://github.com/NuGet/Home/issues/5556#issuecomment-2023068557 -->
-  <Target Name="UseExplicitPackageVersions" BeforeTargets="GenerateNuspec">
-    <ItemGroup>
-      <_ProjectReferencesWithVersions Condition="'%(FullPath)' != ''">
-        <PackageVersion>@(ProjectReference->'%(PackageVersion)')</PackageVersion>
-      </_ProjectReferencesWithVersions>
-      <_ProjectReferencesWithVersions Condition="'%(Identity)' != '' And '%(PackageVersion)' != ''">
-        <ProjectVersion>$([System.String]::new('%(PackageVersion)').Replace('~',%(ProjectVersion)))</ProjectVersion>
-      </_ProjectReferencesWithVersions>
-    </ItemGroup>
-  </Target>
 
 </Project>

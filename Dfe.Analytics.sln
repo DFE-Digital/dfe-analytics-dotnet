@@ -7,7 +7,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{279CE08B-C96
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{324AABEE-3901-49C5-BA3B-CF67C3ADBA7D}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dfe.Analytics", "src\Dfe.Analytics\Dfe.Analytics.csproj", "{A81151B7-A030-493B-8BEF-F96091E1460E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dfe.Analytics.Common", "src\Dfe.Analytics.Common\Dfe.Analytics.Common.csproj", "{A81151B7-A030-493B-8BEF-F96091E1460E}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dfe.Analytics.AspNetCore.Tests", "test\Dfe.Analytics.AspNetCore.Tests\Dfe.Analytics.AspNetCore.Tests.csproj", "{8511B92F-902C-4255-A8BA-8C53B4D7D60E}"
 EndProject

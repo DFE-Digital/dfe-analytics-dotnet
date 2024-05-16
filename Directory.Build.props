@@ -4,6 +4,5 @@
     <TreatWarningsAsErrors Condition="'$(Configuration)' == 'Release'">true</TreatWarningsAsErrors>
     <Nullable>enable</Nullable>
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
-    <BigQueryPackageVersion>3.0.0</BigQueryPackageVersion>
   </PropertyGroup>
 </Project>
