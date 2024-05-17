@@ -1,6 +1,7 @@
 # dfe-analytics-dotnet
 
 This library is a port of the [DfE::Analytics gem](https://github.com/DFE-Digital/dfe-analytics) for ASP.NET Core. Currently only web request events are supported.
+Applications must use ASP.NET Core 8.
 
 ## Installation
 
@@ -8,7 +9,7 @@ Before you can send data to BigQuery with `dfe-analytics` you'll need to setup
 your Google Cloud project. See the [setup Google Cloud setup guide](https://github.com/DFE-Digital/dfe-analytics/blob/main/docs/google_cloud_bigquery_setup.md)
 for instructions on how to do that.
 
-### 1. Add the Dfe.Analytics.AspNetCore library to your app
+### 1. Add the Dfe.Analytics library to your app
 
 The package is not yet available on nuget.org so needs to be downloaded and stored in your repository.
 
@@ -27,13 +28,14 @@ You may need to add a `nuget.config` file to add your package location as a pack
 
 Install the package into your ASP.NET Core project:
 ```
-dotnet add package DfE.Analytics.AspNetCore
+dotnet add package DfE.Analytics
 ```
 
-In your application's entry point class (e.g. `Startup`) first add services:
+In your application's entry point (e.g. `Program.cs`) first add services:
 
 ```cs
-builder.Services.AddDfeAnalytics();
+builder.Services.AddDfeAnalytics()
+    .AddAspNetCoreIntegration();
 ```
 
 then add the middleware:
@@ -57,7 +59,8 @@ Google Cloud as per the instructions above.
 1. Create a JSON private key. This file will be downloaded to your local system.
 
 The library expects to have this JSON key available within your application's `IConfiguration` under the `DfeAnalytics:CredentialsJson` key.
-For local development you should use User Secrets to store the key. For deployed environments set the `DfeAnalytics__CredentialsJson` environment variable.
+For local development you should use User Secrets to store the key.
+For deployed environments you can set the `DfeAnalytics__CredentialsJson` environment variable.
 
 Alternatively you can configure a `BigQueryClient` directly:
 ```cs
@@ -70,15 +73,14 @@ builder.Services.AddDfeAnalytics(options =>
 
 ### 3. Configure the middleware
 
-As well as the `CredentialsJson` above, the library will look for the following additional configuration:
+As well as the `CredentialsJson` above, the library will look for the following additional BigQuery configuration:
 
 | Configuration key | Description |
 | --- | --- |
-| `DatasetId` | *REQUIRED* The BigQuery dataset to write events to. |
-| `Environment` | *REQUIRED* The environment name (populates the `environment` field in the event). |
-| `Namespace` | The application's namespace (populates the `namespace` field in the event.) By default the application's DLL name will be used. |
-| `TableId` | *REQUIRED* The BigQuery table name to write events to. Defaults to `events`. |
-| `UserIdClaimType` | The claim type that contains the user's ID. Defaults to `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier`. |
+| `DfeAnalytics:DatasetId` | *REQUIRED* The BigQuery dataset to write events to. |
+| `DfeAnalytics:Environment` | *REQUIRED* The environment name (populates the `environment` field in the event). |
+| `DfeAnalytics:Namespace` | The application's namespace (populates the `namespace` field in the event.) By default the application's assembly name will be used. |
+| `DfeAnalytics:TableId` | The BigQuery table name to write events to. Defaults to `events`. |
 
 The configuration above can also be set in code:
 ```cs
@@ -86,6 +88,22 @@ builder.Services.AddDfeAnalytics(options =>
 {
     options.DatasetId = ...;
 });
+```
+
+The ASP.NET Core integration has the following configuration options:
+
+| Configuration key | Description |
+| --- | --- |
+| `DfeAnalytics:AspNetCore:UserIdClaimType` | The claim type that contains the user's ID. Defaults to `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier`. |
+| `DfeAnalytics:AspNetCore:PseudonymizeUserId` | Whether to pseudonymize the user_id field in the web request event. Defaults to `false`. |
+
+The configuration about can also be set in code:
+```cs
+builder.Services.AddDfeAnalytics()
+    .AddAspNetCoreIntegration(options =>
+    {
+        options.UserIdClaimType = ...;
+    });
 ```
 
 
@@ -97,16 +115,17 @@ builder.Services.AddDfeAnalytics(options =>
 using DfE.Analyics.AspNetCore;
 
 //...
-httpContext.GetWebRequestEvent().AddTag("tag1", "tag2");
-httpContext.GetWebRequestEvent().AddData("key", "value1", "value2");
+httpContext.GetWebRequestEvent()?.AddTag("tag1", "tag2");
+httpContext.GetWebRequestEvent()?.AddData("key", "value1", "value2");
 ```
 
 
 ### Ignoring the event
 
-Should you want to prevent the library from sending an event to BigQuery for a particular given request you can call `IgnoreEvent()` on the `DfE.Analytics.AspNetCore.WebRequestEventFeature`:
+Should you want to prevent the library from sending an event to BigQuery for a particular given request you can call `IgnoreWebRequestEvent()` on the `HttpContext`:
 
 ```cs
-var feature = httpContext.Features.Get<DfE.Analytics.AspNetCore.WebRequestEventFeature>();
-feature.IgnoreEvent();
-```
+using Dfe.Analytics.AspNetCore;
+
+//...
+feature.IgnoreWebRequestEvent();

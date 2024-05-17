@@ -4,13 +4,13 @@ using Google.Cloud.BigQuery.V2;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 
-namespace Dfe.Analytics.AspNetCore;
+namespace Dfe.Analytics;
 
-internal class DefaultDfeAnalyticsConfigureOptions : IConfigureOptions<DfeAnalyticsOptions>
+internal class DfeAnalyticsConfigureOptions : IConfigureOptions<DfeAnalyticsOptions>
 {
     private readonly IConfiguration _configuration;
 
-    public DefaultDfeAnalyticsConfigureOptions(IConfiguration configuration)
+    public DfeAnalyticsConfigureOptions(IConfiguration configuration)
     {
         _configuration = configuration;
     }
@@ -19,14 +19,12 @@ internal class DefaultDfeAnalyticsConfigureOptions : IConfigureOptions<DfeAnalyt
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        const string configurationSectionName = "DfeAnalytics";
-        var section = _configuration.GetSection(configurationSectionName);
+        var section = _configuration.GetSection(Constants.RootConfigurationSectionName);
 
-        AssignConfigurationValueIfNotEmpty("DatasetId", v => options.DatasetId ??= v);
-        AssignConfigurationValueIfNotEmpty("Environment", v => options.Environment ??= v);
-        AssignConfigurationValueIfNotEmpty("Namespace", v => options.Namespace ??= v);
-        AssignConfigurationValueIfNotEmpty("TableId", v => options.TableId ??= v);
-        AssignConfigurationValueIfNotEmpty("UserIdClaimType", v => options.UserIdClaimType ??= v);
+        AssignConfigurationValueIfNotEmpty("DatasetId", v => options.DatasetId = v);
+        AssignConfigurationValueIfNotEmpty("Environment", v => options.Environment = v);
+        AssignConfigurationValueIfNotEmpty("Namespace", v => options.Namespace = v);
+        AssignConfigurationValueIfNotEmpty("TableId", v => options.TableId = v);
 
         var credentialsJson = section["CredentialsJson"];
 
@@ -58,7 +56,7 @@ internal class DefaultDfeAnalyticsConfigureOptions : IConfigureOptions<DfeAnalyt
         {
             var value = section[configKey];
 
-            if (!string.IsNullOrEmpty(value))
+            if (value is not null)
             {
                 assignValue(value);
             }
