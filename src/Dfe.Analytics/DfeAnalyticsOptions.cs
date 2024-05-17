@@ -11,7 +11,6 @@ public class DfeAnalyticsOptions
     /// <summary>
     /// The <see cref="BigQueryClient"/> to send events with.
     /// </summary>
-    [DisallowNull]
     public BigQueryClient? BigQueryClient { get; set; }
 
     /// <summary>
@@ -43,17 +42,11 @@ public class DfeAnalyticsOptions
     /// </remarks>
     public string? Namespace { get; set; }
 
-    [MemberNotNull(nameof(BigQueryClient))]
     [MemberNotNull(nameof(DatasetId))]
     [MemberNotNull(nameof(TableId))]
     [MemberNotNull(nameof(Environment))]
     internal void ValidateOptions()
     {
-        if (BigQueryClient is null)
-        {
-            throw new InvalidOperationException($"{nameof(BigQueryClient)} has not been configured.");
-        }
-
         if (DatasetId is null)
         {
             throw new InvalidOperationException($"{nameof(DatasetId)} has not been configured.");
