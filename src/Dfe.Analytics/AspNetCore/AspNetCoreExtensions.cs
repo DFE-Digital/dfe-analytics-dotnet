@@ -1,7 +1,7 @@
-using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 
 namespace Dfe.Analytics.AspNetCore;
@@ -12,31 +12,37 @@ namespace Dfe.Analytics.AspNetCore;
 public static class AspNetCoreExtensions
 {
     /// <summary>
-    /// Adds DfE Analytics services to the specified <see cref="IServiceCollection"/>.
+    /// Adds ASP.NET Core integration for DfE Analytics.
     /// </summary>
-    /// <param name="services">The <see cref="IServiceCollection" /> to add services to.</param>
-    /// <param name="setupAction">
-    /// An <see cref="Action{DfeAnalyticsOptions}"/> to configure the provided <see cref="DfeAnalyticsOptions"/>.
-    /// </param>
-    /// <returns>The <see cref="IServiceCollection"/> so that additional calls can be chained.</returns>
-    public static IServiceCollection AddDfeAnalytics(
-        this IServiceCollection services,
-        Action<DfeAnalyticsOptions> setupAction)
+    /// <param name="builder">The <see cref="DfeAnalyticsBuilder" />.</param>
+    /// <returns>The <see cref="DfeAnalyticsBuilder"/> so that additional calls can be chained.</returns>
+    public static DfeAnalyticsBuilder AddAspNetCoreIntegration(this DfeAnalyticsBuilder builder)
     {
-        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.AddAspNetCoreIntegration(_ => { });
+    }
+
+    /// <summary>
+    /// Adds ASP.NET Core integration for DfE Analytics.
+    /// </summary>
+    /// <param name="builder">The <see cref="DfeAnalyticsBuilder" />.</param>
+    /// <param name="setupAction">
+    /// An <see cref="Action{DfeAnalyticsAspNetCoreOptions}"/> to configure the provided <see cref="DfeAnalyticsAspNetCoreOptions"/>.
+    /// </param>
+    /// <returns>The <see cref="DfeAnalyticsBuilder"/> so that additional calls can be chained.</returns>
+    public static DfeAnalyticsBuilder AddAspNetCoreIntegration(
+        this DfeAnalyticsBuilder builder,
+        Action<DfeAnalyticsAspNetCoreOptions> setupAction)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(setupAction);
 
-        // Ensure DefaultDfeAnalyticsConfigureOptions is the first IConfigureOptions<DfeAnalyticsOptions> to be resolved
-        services.Insert(
-            0,
-            new ServiceDescriptor(
-                typeof(IConfigureOptions<DfeAnalyticsOptions>),
-                typeof(DefaultDfeAnalyticsConfigureOptions),
-                ServiceLifetime.Singleton));
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DfeAnalyticsAspNetCoreOptions>, DfeAnalyticsAspNetCoreConfigureOptions>());
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IPostConfigureOptions<DfeAnalyticsAspNetCoreOptions>, DfeAnalyticsAspNetCorePostConfigureOptions>());
+        builder.Services.Configure(setupAction);
 
-        services.Configure(setupAction);
-
-        return services;
+        return builder;
     }
 
     /// <summary>
@@ -60,28 +66,25 @@ public static class AspNetCoreExtensions
     /// Gets the <see cref="Event"/> for the specified <see cref="HttpContext"/>.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/>.</param>
-    /// <returns>The <see cref="Event"/>.</returns>
+    /// <returns>The <see cref="Event"/> or <see langword="null"/> if the <see cref="WebRequestEventFeature"/> is missing.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="httpContext"/> is <see langword="null" />.</exception>
-    /// <exception cref="InvalidOperationException">
-    /// The <paramref name="httpContext"/> has no <see cref="Event"/> assigned.
-    /// </exception>
-    public static Event GetWebRequestEvent(this HttpContext httpContext)
+    public static Event? GetWebRequestEvent(this HttpContext httpContext)
     {
         ArgumentNullException.ThrowIfNull(httpContext);
 
         var feature = httpContext.Features.Get<WebRequestEventFeature>();
-
-        if (feature is null)
-        {
-            ThrowFeatureMissingException();
-        }
-
-        return feature.Event;
+        return feature?.Event;
     }
 
-    [DoesNotReturn]
-    private static void ThrowFeatureMissingException() =>
-        throw new InvalidOperationException(
-            $"{nameof(HttpContext)} does not contain a {nameof(WebRequestEventFeature)} feature. " +
-            $"Ensure app.{nameof(UseDfeAnalytics)}() has been called from your startup class.");
+    /// <summary>
+    /// Indicates that the web request event should not be sent to BigQuery.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The event has already been sent.</exception>
+    public static void IgnoreWebRequestEvent(this HttpContext httpContext)
+    {
+        ArgumentNullException.ThrowIfNull(httpContext);
+
+        var feature = httpContext.Features.Get<WebRequestEventFeature>();
+        feature?.IgnoreEvent();
+    }
 }

@@ -260,10 +260,10 @@ public class IntegrationTestsStartup
         {
             endpoints.MapGet("/test", async ctx =>
             {
-                var feature = ctx.Features.Get<WebRequestEventFeature>()!;
-                feature.Event.AddData("data-key1", "data-value1");
-                feature.Event.AddData("data-key2", "data-value2");
-                feature.Event.AddTags("tag1", "tag2");
+                var @event = ctx.GetWebRequestEvent();
+                @event?.AddData("data-key1", "data-value1");
+                @event?.AddData("data-key2", "data-value2");
+                @event?.AddTags("tag1", "tag2");
 
                 ctx.Response.ContentType = "text/plain";
                 await ctx.Response.WriteAsync("Ok");
@@ -271,8 +271,7 @@ public class IntegrationTestsStartup
 
             endpoints.MapGet("/skip-event", async ctx =>
             {
-                var feature = ctx.Features.Get<WebRequestEventFeature>()!;
-                feature.IgnoreEvent();
+                ctx.IgnoreWebRequestEvent();
 
                 ctx.Response.ContentType = "text/plain";
                 await ctx.Response.WriteAsync("Ok");
@@ -287,15 +286,18 @@ public class IntegrationTestsStartup
         var bigQueryClientMock = new Mock<BigQueryClient>();
         services.AddSingleton(bigQueryClientMock);
 
-        services.AddDfeAnalytics(options =>
-        {
-            options.BigQueryClient = bigQueryClientMock.Object;
-            options.DatasetId = DatasetId;
-            options.Environment = Environment;
-            options.Namespace = Namespace;
-            options.TableId = TableId;
-
-            options.GetUserIdFromRequest = ctx => ctx.Request.Headers["X-UserId"];
-        });
+        services
+            .AddDfeAnalytics(options =>
+            {
+                options.BigQueryClient = bigQueryClientMock.Object;
+                options.DatasetId = DatasetId;
+                options.Environment = Environment;
+                options.Namespace = Namespace;
+                options.TableId = TableId;
+            })
+            .AddAspNetCoreIntegration(options =>
+            {
+                options.GetUserIdFromRequest = ctx => ctx.Request.Headers["X-UserId"];
+            });
     }
 }

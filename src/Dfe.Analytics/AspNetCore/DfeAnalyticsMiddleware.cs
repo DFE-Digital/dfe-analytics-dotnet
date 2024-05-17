@@ -17,15 +17,23 @@ public class DfeAnalyticsMiddleware
     /// Creates a new <see cref="DfeAnalyticsMiddleware"/>.
     /// </summary>
     /// <param name="next">The <see cref="RequestDelegate"/> representing the next middleware in the pipeline.</param>
-    /// <param name="options">The configuration options.</param>
+    /// <param name="optionsAccessor">The configuration options.</param>
+    /// <param name="aspNetCoreOptionsAccessor">The middleware configuration options.</param>
     /// <param name="logger">The logger instance.</param>
     public DfeAnalyticsMiddleware(
         RequestDelegate next,
-        IOptions<DfeAnalyticsOptions> options,
+        IOptions<DfeAnalyticsOptions> optionsAccessor,
+        IOptions<DfeAnalyticsAspNetCoreOptions> aspNetCoreOptionsAccessor,
         ILogger<DfeAnalyticsMiddleware> logger)
     {
+        ArgumentNullException.ThrowIfNull(next);
+        ArgumentNullException.ThrowIfNull(optionsAccessor);
+        ArgumentNullException.ThrowIfNull(aspNetCoreOptionsAccessor);
+        ArgumentNullException.ThrowIfNull(logger);
+
         _next = next;
-        Options = options.Value;
+        Options = optionsAccessor.Value;
+        AspNetCoreOptions = aspNetCoreOptionsAccessor.Value;
         _logger = logger;
     }
 
@@ -33,6 +41,11 @@ public class DfeAnalyticsMiddleware
     /// The configuration options.
     /// </summary>
     protected DfeAnalyticsOptions Options { get; }
+
+    /// <summary>
+    /// The middleware configuration options.
+    /// </summary>
+    protected DfeAnalyticsAspNetCoreOptions AspNetCoreOptions { get; }
 
     /// <summary>
     /// Invokes the logic of the middleware.
@@ -120,7 +133,12 @@ public class DfeAnalyticsMiddleware
         @event.RequestQuery = context.Request.Query.ToDictionary(q => q.Key, q => q.Value.Where(v => v is not null).Select(v => v!).ToArray());
         @event.RequestReferer = context.Request.Headers.Referer;
         @event.RequestUserAgent = context.Request.Headers.UserAgent;
-        @event.UserId = Options.GetUserIdFromRequest?.Invoke(context);
+        @event.UserId = AspNetCoreOptions.GetUserIdFromRequest?.Invoke(context);
+
+        if (@event.UserId is not null && AspNetCoreOptions.PseudonymizeUserId)
+        {
+            @event.UserId = Event.Pseudonymize(@event.UserId);
+        }
     }
 
     /// <summary>
@@ -133,7 +151,7 @@ public class DfeAnalyticsMiddleware
     /// <returns>A <see cref="string"/> with an anonymized form of the client's IP address and user agent.</returns>
     protected virtual string? GetAnonymizedUserAgentAndIp(HttpContext context) =>
         context.Connection.RemoteIpAddress is not null ?
-            Event.Anonymize(context.Request.Headers.UserAgent.ToString() + context.Connection.RemoteIpAddress) :
+            Event.Pseudonymize(context.Request.Headers.UserAgent.ToString() + context.Connection.RemoteIpAddress) :
             null;
 
     /// <summary>
@@ -153,6 +171,6 @@ public class DfeAnalyticsMiddleware
         // We may not have been able to get the user the first time around (depending on the order middleware is registered);
         // if UserId is not set then try to get it now.
 
-        @event.UserId ??= Options.GetUserIdFromRequest?.Invoke(context);
+        @event.UserId ??= AspNetCoreOptions.GetUserIdFromRequest?.Invoke(context);
     }
 }

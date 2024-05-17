@@ -34,11 +34,7 @@ public class Event
         get => _environment;
         set
         {
-            if (string.IsNullOrEmpty(value))
-            {
-                throw new ArgumentNullException(nameof(value));
-            }
-
+            ArgumentNullException.ThrowIfNullOrEmpty(value);
             _environment = value;
         }
     }
@@ -202,7 +198,7 @@ public class Event
                 {
                     { "key", qp.Key },
                     { "value", qp.Value }
-                })?.ToArray() ?? Array.Empty<BigQueryInsertRow>()
+                })?.ToArray() ?? []
             },
             { "response_content_type", ResponseContentType },
             { "response_status", ResponseStatus },
@@ -222,7 +218,7 @@ public class Event
     /// <summary>
     /// Returns a hexadecimal SHA256 hash of <paramref name="value"/>.
     /// </summary>
-    public static string Anonymize(string value)
+    public static string Pseudonymize(string value)
     {
         // https://github.com/DFE-Digital/dfe-analytics/blob/8a181ff385810dbe7c7bb7fec5a55033a7b1fad0/lib/dfe/analytics.rb#L149-L151
         var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(value));

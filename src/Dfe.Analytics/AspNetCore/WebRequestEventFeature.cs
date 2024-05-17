@@ -30,7 +30,7 @@ public class WebRequestEventFeature
     public bool IsEventIgnored { get; private set; }
 
     /// <summary>
-    /// Marks the event ignored and does not send it to BigQuery.
+    /// Indicates that the event should not be sent to BigQuery.
     /// </summary>
     /// <exception cref="InvalidOperationException">The event has already been sent.</exception>
     public void IgnoreEvent()
