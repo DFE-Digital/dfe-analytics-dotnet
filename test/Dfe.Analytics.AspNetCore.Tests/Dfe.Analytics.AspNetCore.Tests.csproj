@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>false</IsPackable>
     <NoDefaultLaunchSettingsFile>true</NoDefaultLaunchSettingsFile>
@@ -23,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Dfe.Analytics.AspNetCore\Dfe.Analytics.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\src\Dfe.Analytics\Dfe.Analytics.csproj" />
   </ItemGroup>
 
 </Project>

@@ -33,15 +33,15 @@ jobs:
       run: dotnet test test/Dfe.Analytics.AspNetCore.Tests/ --configuration Release --no-build
 
     - name: Package
-      run: dotnet pack src/Dfe.Analytics.AspNetCore/ --configuration Release --no-build
+      run: dotnet pack src/Dfe.Analytics/ --configuration Release --no-build
       env:
         MINVERBUILDMETADATA: ${{ env.GITHUB_RUN_NUMBER }}
 
     - name: Publish package artifact
       uses: actions/upload-artifact@v3
       with:
-        name: Dfe.Analytics.AspNetCore.nupkg
+        name: Dfe.Analytics.nupkg
         path: |
-          src/Dfe.Analytics.AspNetCore/bin/Release/*.nupkg
-          src/Dfe.Analytics.AspNetCore/bin/Release/*.snupkg
+          src/Dfe.Analytics/bin/Release/*.nupkg
+          src/Dfe.Analytics/bin/Release/*.snupkg
         if-no-files-found: error
