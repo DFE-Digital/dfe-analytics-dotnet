@@ -30,14 +30,13 @@ internal class DfeAnalyticsConfigureOptions : IConfigureOptions<DfeAnalyticsOpti
 
         if (!string.IsNullOrEmpty(credentialsJson))
         {
+            var credentialsJsonDoc = JsonDocument.Parse(credentialsJson);
+
             var projectId = section["ProjectId"];
 
             if (projectId is null)
             {
                 // We don't have ProjectId configured explicitly; see if it's set in the JSON credentials
-
-                var credentialsJsonDoc = JsonDocument.Parse(credentialsJson);
-
                 if (credentialsJsonDoc.RootElement.TryGetProperty("project_id", out var projectIdElement) &&
                     projectIdElement.ValueKind == JsonValueKind.String)
                 {
@@ -45,7 +44,7 @@ internal class DfeAnalyticsConfigureOptions : IConfigureOptions<DfeAnalyticsOpti
                 }
             }
 
-            if (projectId is not null)
+            if (credentialsJsonDoc.RootElement.TryGetProperty("private_key", out _) && projectId is not null)
             {
                 var creds = GoogleCredential.FromJson(credentialsJson);
                 options.BigQueryClient = BigQueryClient.Create(projectId, creds);

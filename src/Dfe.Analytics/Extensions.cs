@@ -37,6 +37,7 @@ public static class Extensions
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DfeAnalyticsOptions>, DfeAnalyticsConfigureOptions>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IPostConfigureOptions<DfeAnalyticsOptions>, DfeAnalyticsPostConfigureOptions>());
         services.Configure(setupAction);
+        services.TryAddSingleton<IBigQueryClientProvider, OptionsBigQueryClientProvider>();
 
         return new DfeAnalyticsBuilder(services);
     }

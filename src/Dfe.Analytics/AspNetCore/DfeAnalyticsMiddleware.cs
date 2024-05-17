@@ -11,27 +11,32 @@ namespace Dfe.Analytics.AspNetCore;
 public class DfeAnalyticsMiddleware
 {
     private readonly RequestDelegate _next;
+    private readonly IBigQueryClientProvider _bigQueryClientProvider;
     private readonly ILogger<DfeAnalyticsMiddleware> _logger;
 
     /// <summary>
     /// Creates a new <see cref="DfeAnalyticsMiddleware"/>.
     /// </summary>
     /// <param name="next">The <see cref="RequestDelegate"/> representing the next middleware in the pipeline.</param>
+    /// <param name="bigQueryClientProvider">The <see cref="IBigQueryClientProvider"/>.</param>
     /// <param name="optionsAccessor">The configuration options.</param>
     /// <param name="aspNetCoreOptionsAccessor">The middleware configuration options.</param>
     /// <param name="logger">The logger instance.</param>
     public DfeAnalyticsMiddleware(
         RequestDelegate next,
+        IBigQueryClientProvider bigQueryClientProvider,
         IOptions<DfeAnalyticsOptions> optionsAccessor,
         IOptions<DfeAnalyticsAspNetCoreOptions> aspNetCoreOptionsAccessor,
         ILogger<DfeAnalyticsMiddleware> logger)
     {
         ArgumentNullException.ThrowIfNull(next);
+        ArgumentNullException.ThrowIfNull(bigQueryClientProvider);
         ArgumentNullException.ThrowIfNull(optionsAccessor);
         ArgumentNullException.ThrowIfNull(aspNetCoreOptionsAccessor);
         ArgumentNullException.ThrowIfNull(logger);
 
         _next = next;
+        _bigQueryClientProvider = bigQueryClientProvider;
         Options = optionsAccessor.Value;
         AspNetCoreOptions = aspNetCoreOptionsAccessor.Value;
         _logger = logger;
@@ -78,7 +83,9 @@ public class DfeAnalyticsMiddleware
 
             try
             {
-                await Options.BigQueryClient.InsertRowAsync(
+                var bigQueryClient = await _bigQueryClientProvider.GetBigQueryClientAsync();
+
+                await bigQueryClient.InsertRowAsync(
                     Options.DatasetId,
                     Options.TableId,
                     row);
