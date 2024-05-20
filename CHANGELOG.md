@@ -18,7 +18,11 @@ The `DfEAnalytics.Event.Anonymize()` has been renamed to `Pseudonymize()` to ali
 
 The `GetWebRequestEvent()` extension method over `Microsoft.AspNetCore.Http.HttpContext` has been amended to return `null` if the `WebRequestEventFeature` is missing instead of throwing.
 
-A `IgnoreWebRequestEvent()` extension method over `Microsoft.AspNetCore.Http.HttpContext` has been added.
+A `UseFederatedAksBigQueryClientProvider()` method has been added for using Workload Managed Identity in AKS for authentication:
+```cs
+services.AddDfeAnalytics(...)
+    .UseFederatedAksBigQueryClientProvider(options => ...);
+```
 
 
 ## 0.1.0

@@ -21,10 +21,11 @@ internal class DfeAnalyticsConfigureOptions : IConfigureOptions<DfeAnalyticsOpti
 
         var section = _configuration.GetSection(Constants.RootConfigurationSectionName);
 
-        AssignConfigurationValueIfNotEmpty("DatasetId", v => options.DatasetId = v);
-        AssignConfigurationValueIfNotEmpty("Environment", v => options.Environment = v);
-        AssignConfigurationValueIfNotEmpty("Namespace", v => options.Namespace = v);
-        AssignConfigurationValueIfNotEmpty("TableId", v => options.TableId = v);
+        section.AssignConfigurationValueIfNotEmpty("DatasetId", v => options.DatasetId = v);
+        section.AssignConfigurationValueIfNotEmpty("Environment", v => options.Environment = v);
+        section.AssignConfigurationValueIfNotEmpty("Namespace", v => options.Namespace = v);
+        section.AssignConfigurationValueIfNotEmpty("TableId", v => options.TableId = v);
+        section.AssignConfigurationValueIfNotEmpty("ProjectId", v => options.ProjectId = v);
 
         var credentialsJson = section["CredentialsJson"];
 
@@ -32,32 +33,20 @@ internal class DfeAnalyticsConfigureOptions : IConfigureOptions<DfeAnalyticsOpti
         {
             var credentialsJsonDoc = JsonDocument.Parse(credentialsJson);
 
-            var projectId = section["ProjectId"];
+            var projectId = options.ProjectId;
 
-            if (projectId is null)
+            // We don't have ProjectId configured explicitly; see if it's set in the JSON credentials
+            if (projectId is null &&
+                credentialsJsonDoc.RootElement.TryGetProperty("project_id", out var projectIdElement) &&
+                projectIdElement.ValueKind == JsonValueKind.String)
             {
-                // We don't have ProjectId configured explicitly; see if it's set in the JSON credentials
-                if (credentialsJsonDoc.RootElement.TryGetProperty("project_id", out var projectIdElement) &&
-                    projectIdElement.ValueKind == JsonValueKind.String)
-                {
-                    projectId = projectIdElement.GetString();
-                }
+                projectId = projectIdElement.GetString();
             }
 
             if (credentialsJsonDoc.RootElement.TryGetProperty("private_key", out _) && projectId is not null)
             {
                 var creds = GoogleCredential.FromJson(credentialsJson);
                 options.BigQueryClient = BigQueryClient.Create(projectId, creds);
-            }
-        }
-
-        void AssignConfigurationValueIfNotEmpty(string configKey, Action<string> assignValue)
-        {
-            var value = section[configKey];
-
-            if (value is not null)
-            {
-                assignValue(value);
             }
         }
     }
