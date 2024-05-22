@@ -24,6 +24,12 @@ services.AddDfeAnalytics(...)
     .UseFederatedAksBigQueryClientProvider(options => ...);
 ```
 
+An option has been added to filter out any requests that should not generate a web request event:
+```cs
+services.AddDfeAnalytics(...)
+    .AddAspNetCoreIntegration(options => options.RequestFilter = ctx => /* filter condition */);
+```
+
 
 ## 0.1.0
 

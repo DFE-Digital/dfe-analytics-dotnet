@@ -30,6 +30,11 @@ public class DfeAnalyticsAspNetCoreOptions
     public bool PseudonymizeUserId { get; set; }
 
     /// <summary>
+    /// A filter that controls whether a web request event is sent for a given <see cref="HttpContext"/>.
+    /// </summary>
+    public Func<HttpContext, bool>? RequestFilter { get; set; }
+
+    /// <summary>
     /// Gets the current user's ID from the <see cref="HttpContext"/> using the <see cref="UserIdClaimType"/> claim.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/>.</param>
