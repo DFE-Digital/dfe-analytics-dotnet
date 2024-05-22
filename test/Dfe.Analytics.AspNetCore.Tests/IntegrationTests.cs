@@ -232,6 +232,33 @@ public class IntegrationTests : IClassFixture<IntegrationTestsApplicationFactory
                 It.IsAny<CancellationToken>()),
             Times.Never());
     }
+
+    [Fact]
+    public async Task RequestDoesNotMatchFilter_DoesNotSendEventToBigQuery()
+    {
+        var userId = "user-123";
+        var referer = "http://example.org/";
+        var userAgent = "TestClient";
+
+        var httpClient = _fixture.CreateClient();
+
+        var request = new HttpRequestMessage(HttpMethod.Get, "/not-in-filter");
+        request.Headers.TryAddWithoutValidation("User-Agent", userAgent);
+        request.Headers.TryAddWithoutValidation("X-UserId", userId);
+        request.Headers.TryAddWithoutValidation("Referer", referer);
+
+        var response = await httpClient.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+
+        _bigQueryClient.Verify(
+            mock => mock.InsertRowAsync(
+                IntegrationTestsStartup.DatasetId,
+                IntegrationTestsStartup.TableId,
+                It.IsAny<BigQueryInsertRow>(),
+                It.IsAny<InsertOptions>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never());
+    }
 }
 
 public class IntegrationTestsApplicationFactory : WebApplicationFactory<IntegrationTestsStartup>
@@ -276,6 +303,12 @@ public class IntegrationTestsStartup
                 ctx.Response.ContentType = "text/plain";
                 await ctx.Response.WriteAsync("Ok");
             });
+
+            endpoints.MapGet("/not-in-filter", async ctx =>
+            {
+                ctx.Response.ContentType = "text/plain";
+                await ctx.Response.WriteAsync("Ok");
+            });
         });
     }
 
@@ -298,6 +331,7 @@ public class IntegrationTestsStartup
             .AddAspNetCoreIntegration(options =>
             {
                 options.GetUserIdFromRequest = ctx => ctx.Request.Headers["X-UserId"];
+                options.RequestFilter = ctx => !ctx.Request.Path.StartsWithSegments("/not-in-filter");
             });
     }
 }

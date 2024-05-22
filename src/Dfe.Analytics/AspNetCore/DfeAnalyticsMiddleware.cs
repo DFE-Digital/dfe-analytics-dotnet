@@ -72,7 +72,7 @@ public class DfeAnalyticsMiddleware
         {
             var feature = context.Features.Get<WebRequestEventFeature>();
 
-            if (feature is null || feature.IsEventIgnored || feature.EventSent)
+            if (feature is null || feature.IsEventIgnored || feature.EventSent || AspNetCoreOptions.RequestFilter?.Invoke(context) == false)
             {
                 return;
             }
