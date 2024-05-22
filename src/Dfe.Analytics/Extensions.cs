@@ -36,6 +36,7 @@ public static class Extensions
 
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DfeAnalyticsOptions>, DfeAnalyticsConfigureOptions>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IPostConfigureOptions<DfeAnalyticsOptions>, DfeAnalyticsPostConfigureOptions>());
+        services.TryAddSingleton<TimeProvider>(_ => TimeProvider.System);
         services.Configure(setupAction);
         services.TryAddSingleton<IBigQueryClientProvider, OptionsBigQueryClientProvider>();
 
@@ -67,7 +68,6 @@ public static class Extensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(setupAction);
 
-        builder.Services.TryAddSingleton<TimeProvider>(_ => TimeProvider.System);
         builder.Services.AddSingleton<IBigQueryClientProvider, AksFederatedBigQueryClientProvider>();
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<FederatedAksAuthenticationOptions>, FederatedAksAuthenticationConfigureOptions>());
         builder.Services.Configure(setupAction);
