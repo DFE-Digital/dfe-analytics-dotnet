@@ -41,4 +41,37 @@ public static class Extensions
 
         return new DfeAnalyticsBuilder(services);
     }
+
+    /// <summary>
+    /// Registers <see cref="AksFederatedBigQueryClientProvider"/> as the <see cref="IBigQueryClientProvider"/>.
+    /// </summary>
+    /// <param name="builder">The <see cref="DfeAnalyticsBuilder"/>.</param>
+    /// <returns>The <see cref="DfeAnalyticsBuilder"/> so that additional calls can be chained.</returns>
+    public static DfeAnalyticsBuilder UseFederatedAksBigQueryClientProvider(this DfeAnalyticsBuilder builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.UseFederatedAksBigQueryClientProvider(_ => { });
+    }
+
+    /// <summary>
+    /// Registers <see cref="AksFederatedBigQueryClientProvider"/> and configures as the <see cref="IBigQueryClientProvider"/>.
+    /// </summary>
+    /// <param name="builder">The <see cref="DfeAnalyticsBuilder"/>.</param>
+    /// <param name="setupAction">
+    /// An <see cref="Action{FederatedAksAuthenticationOptions}"/> to configure the provided <see cref="FederatedAksAuthenticationOptions"/>.
+    /// </param>
+    /// <returns>The <see cref="DfeAnalyticsBuilder"/> so that additional calls can be chained.</returns>
+    public static DfeAnalyticsBuilder UseFederatedAksBigQueryClientProvider(this DfeAnalyticsBuilder builder, Action<FederatedAksAuthenticationOptions> setupAction)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(setupAction);
+
+        builder.Services.TryAddSingleton<TimeProvider>(_ => TimeProvider.System);
+        builder.Services.AddSingleton<IBigQueryClientProvider, AksFederatedBigQueryClientProvider>();
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<FederatedAksAuthenticationOptions>, FederatedAksAuthenticationConfigureOptions>());
+        builder.Services.Configure(setupAction);
+
+        return builder;
+    }
 }

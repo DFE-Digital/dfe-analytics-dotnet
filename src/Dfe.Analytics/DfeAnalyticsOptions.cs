@@ -42,6 +42,11 @@ public class DfeAnalyticsOptions
     /// </remarks>
     public string? Namespace { get; set; }
 
+    /// <summary>
+    /// The project ID.
+    /// </summary>
+    public string? ProjectId { get; set; }
+
     [MemberNotNull(nameof(DatasetId))]
     [MemberNotNull(nameof(TableId))]
     [MemberNotNull(nameof(Environment))]
