@@ -59,7 +59,7 @@ public class DfeAnalyticsMiddleware
     /// <summary>
     /// The <see cref="TimeProvider"/>.
     /// </summary>
-    public TimeProvider TimeProvider { get; }
+    protected TimeProvider TimeProvider { get; }
 
     /// <summary>
     /// Invokes the logic of the middleware.
