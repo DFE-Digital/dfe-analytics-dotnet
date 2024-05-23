@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.0
 
 Changed the library design to have a single `Dfe.Analytics` package to cover both web events and database events.
 
