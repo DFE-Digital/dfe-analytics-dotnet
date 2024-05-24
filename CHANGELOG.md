@@ -4,6 +4,8 @@
 
 A `IWebRequestEventEnricher` interface has been added so that applications can modify web request events before they are sent to BigQuery.
 
+A `RateLimiter` property has been added to `DfeAnalyticsAspNetCoreOptions` to limit the rate of web request events sent to BigQuery.
+
 ## 0.2.0
 
 Changed the library design to have a single `Dfe.Analytics` package to cover both web events and database events.
