@@ -129,3 +129,26 @@ using Dfe.Analytics.AspNetCore;
 
 //...
 feature.IgnoreWebRequestEvent();
+
+
+### Modifying web request events
+
+If you want to modify web request events before they are sent, you can create a class and implement `IWebRequestEventEnricher`.
+The `EnrichEvent()` method will be called before each event is sent to BigQuery.
+You can add multiple `IWebRequestEventEnricher`s to the application.
+
+```cs
+using Dfe.Analytics.AspNetCore;
+
+public class MyEnricher : IWebRequestEventEnricher
+{
+    public Task EnrichEvent(EnrichWebRequestEventContext context)
+    {
+        context.Event.AddData("Key", "Value");
+        return Task.CompletedTask;
+    }
+}
+
+//...
+builder.Services.AddSingleton<IWebRequestEventEnricher, MyEnricher>();
+```
