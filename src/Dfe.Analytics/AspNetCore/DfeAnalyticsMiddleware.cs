@@ -98,11 +98,11 @@ public class DfeAnalyticsMiddleware
             foreach (var enricher in _webRequestEventEnrichers)
             {
                 await enricher.EnrichEvent(enrichContext);
-            }
 
-            if (feature.IsEventIgnored)
-            {
-                return;
+                if (feature.IsEventIgnored)
+                {
+                    return;
+                }
             }
 
             var row = @event.ToBigQueryInsertRow();
