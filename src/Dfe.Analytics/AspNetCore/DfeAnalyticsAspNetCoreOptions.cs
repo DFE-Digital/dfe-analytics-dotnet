@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Http;
 
 namespace Dfe.Analytics.AspNetCore;
@@ -33,6 +34,11 @@ public class DfeAnalyticsAspNetCoreOptions
     /// A filter that controls whether a web request event is sent for a given <see cref="HttpContext"/>.
     /// </summary>
     public Func<HttpContext, bool>? RequestFilter { get; set; }
+
+    /// <summary>
+    /// Limits the rate of web request events sent to BigQuery.
+    /// </summary>
+    public PartitionedRateLimiter<HttpContext>? RateLimiter { get; set; }
 
     /// <summary>
     /// Gets the current user's ID from the <see cref="HttpContext"/> using the <see cref="UserIdClaimType"/> claim.

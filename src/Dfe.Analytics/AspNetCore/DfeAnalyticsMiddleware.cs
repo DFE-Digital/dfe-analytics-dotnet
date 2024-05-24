@@ -1,3 +1,4 @@
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.Extensions.Logging;
@@ -84,37 +85,51 @@ public class DfeAnalyticsMiddleware
 
         context.Response.OnCompleted(async () =>
         {
-            var feature = context.Features.Get<WebRequestEventFeature>();
-
-            if (feature is null || feature.IsEventIgnored || feature.EventSent || AspNetCoreOptions.RequestFilter?.Invoke(context) == false)
+            RateLimitLease? rateLimitLease = null;
+            try
             {
-                return;
-            }
+                var feature = context.Features.Get<WebRequestEventFeature>();
 
-            var @event = feature.Event;
-            PopulateEventFromResponse(@event, context);
-
-            var enrichContext = new EnrichWebRequestEventContext(feature, context);
-            foreach (var enricher in _webRequestEventEnrichers)
-            {
-                await enricher.EnrichEvent(enrichContext);
-
-                if (feature.IsEventIgnored)
+                if (feature is null || feature.IsEventIgnored || feature.EventSent || AspNetCoreOptions.RequestFilter?.Invoke(context) == false)
                 {
                     return;
                 }
-            }
 
-            var row = @event.ToBigQueryInsertRow();
+                var @event = feature.Event;
+                PopulateEventFromResponse(@event, context);
 
-            try
-            {
+                var enrichContext = new EnrichWebRequestEventContext(feature, context);
+                foreach (var enricher in _webRequestEventEnrichers)
+                {
+                    await enricher.EnrichEvent(enrichContext);
+
+                    if (feature.IsEventIgnored)
+                    {
+                        return;
+                    }
+                }
+
+                if (AspNetCoreOptions.RateLimiter is not null)
+                {
+                    rateLimitLease = await AspNetCoreOptions.RateLimiter.AcquireAsync(context);
+
+                    if (!rateLimitLease.IsAcquired)
+                    {
+                        _logger.LogDebug("Event for {RequestAddress} was dropped due to an exceeded rate limit", context.Request.GetEncodedPathAndQuery());
+                        return;
+                    }
+                }
+
                 var bigQueryClient = await _bigQueryClientProvider.GetBigQueryClientAsync();
+
+                var row = @event.ToBigQueryInsertRow();
 
                 await bigQueryClient.InsertRowAsync(
                     Options.DatasetId,
                     Options.TableId,
                     row);
+
+                feature.MarkEventSent();
 
                 _logger.LogInformation("Sent {EventType} event to Big Query for {RequestAddress}", @event.EventType, context.Request.GetEncodedPathAndQuery());
             }
@@ -123,8 +138,10 @@ public class DfeAnalyticsMiddleware
                 _logger.LogError(ex, "Failed sending {EventType} event to BigQuery table for {RequestAddress}", @event.EventType, context.Request.GetEncodedPathAndQuery());
                 throw;
             }
-
-            feature.MarkEventSent();
+            finally
+            {
+                rateLimitLease?.Dispose();
+            }
         });
 
         await _next(context);
