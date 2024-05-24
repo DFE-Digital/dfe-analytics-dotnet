@@ -12,6 +12,7 @@ public class DfeAnalyticsMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly IBigQueryClientProvider _bigQueryClientProvider;
+    private readonly IEnumerable<IWebRequestEventEnricher> _webRequestEventEnrichers;
     private readonly ILogger<DfeAnalyticsMiddleware> _logger;
 
     /// <summary>
@@ -22,6 +23,7 @@ public class DfeAnalyticsMiddleware
     /// <param name="timeProvider">The <see cref="TimeProvider"/>.</param>
     /// <param name="optionsAccessor">The configuration options.</param>
     /// <param name="aspNetCoreOptionsAccessor">The middleware configuration options.</param>
+    /// <param name="webRequestEventEnrichers">The collection of <see cref="IWebRequestEventEnricher"/>.</param>
     /// <param name="logger">The logger instance.</param>
     public DfeAnalyticsMiddleware(
         RequestDelegate next,
@@ -29,6 +31,7 @@ public class DfeAnalyticsMiddleware
         TimeProvider timeProvider,
         IOptions<DfeAnalyticsOptions> optionsAccessor,
         IOptions<DfeAnalyticsAspNetCoreOptions> aspNetCoreOptionsAccessor,
+        IEnumerable<IWebRequestEventEnricher> webRequestEventEnrichers,
         ILogger<DfeAnalyticsMiddleware> logger)
     {
         ArgumentNullException.ThrowIfNull(next);
@@ -36,11 +39,13 @@ public class DfeAnalyticsMiddleware
         ArgumentNullException.ThrowIfNull(timeProvider);
         ArgumentNullException.ThrowIfNull(optionsAccessor);
         ArgumentNullException.ThrowIfNull(aspNetCoreOptionsAccessor);
+        ArgumentNullException.ThrowIfNull(webRequestEventEnrichers);
         ArgumentNullException.ThrowIfNull(logger);
 
         _next = next;
         _bigQueryClientProvider = bigQueryClientProvider;
         TimeProvider = timeProvider;
+        _webRequestEventEnrichers = webRequestEventEnrichers;
         Options = optionsAccessor.Value;
         AspNetCoreOptions = aspNetCoreOptionsAccessor.Value;
         _logger = logger;
@@ -88,6 +93,18 @@ public class DfeAnalyticsMiddleware
 
             var @event = feature.Event;
             PopulateEventFromResponse(@event, context);
+
+            var enrichContext = new EnrichWebRequestEventContext(feature, context);
+            foreach (var enricher in _webRequestEventEnrichers)
+            {
+                await enricher.EnrichEvent(enrichContext);
+            }
+
+            if (feature.IsEventIgnored)
+            {
+                return;
+            }
+
             var row = @event.ToBigQueryInsertRow();
 
             try

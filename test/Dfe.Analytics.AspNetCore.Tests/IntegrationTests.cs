@@ -185,6 +185,21 @@ public class IntegrationTests : IClassFixture<IntegrationTestsApplicationFactory
                                 Assert.Equal("value", field.Key);
                                 Assert.Collection(Assert.IsAssignableFrom<IEnumerable<string>>(field.Value), v => Assert.Equal("data-value2", v));
                             });
+                    },
+                    row =>
+                    {
+                        Assert.Collection(
+                            row.Cast<KeyValuePair<string, object>>()!,
+                            field =>
+                            {
+                                Assert.Equal("key", field.Key);
+                                Assert.Equal("Enriched", field.Value);
+                            },
+                            field =>
+                            {
+                                Assert.Equal("value", field.Key);
+                                Assert.Collection(Assert.IsAssignableFrom<IEnumerable<string>>(field.Value), v => Assert.Equal("42", v));
+                            });
                     });
             },
             field =>
@@ -333,5 +348,16 @@ public class IntegrationTestsStartup
                 options.GetUserIdFromRequest = ctx => ctx.Request.Headers["X-UserId"];
                 options.RequestFilter = ctx => !ctx.Request.Path.StartsWithSegments("/not-in-filter");
             });
+
+        services.AddSingleton<IWebRequestEventEnricher, Enricher>();
+    }
+}
+
+public class Enricher : IWebRequestEventEnricher
+{
+    public Task EnrichEvent(EnrichWebRequestEventContext context)
+    {
+        context.Event.AddData("Enriched", "42");
+        return Task.CompletedTask;
     }
 }
