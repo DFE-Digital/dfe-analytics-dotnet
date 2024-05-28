@@ -10,5 +10,5 @@ public interface IWebRequestEventEnricher
     /// </summary>
     /// <param name="context">The <see cref="EnrichWebRequestEventContext"/>.</param>
     /// <returns>A <see cref="Task"/> that represents the event modification.</returns>
-    Task EnrichEvent(EnrichWebRequestEventContext context);
+    Task EnrichEventAsync(EnrichWebRequestEventContext context);
 }
