@@ -101,7 +101,7 @@ public class DfeAnalyticsMiddleware
                 var enrichContext = new EnrichWebRequestEventContext(feature, context);
                 foreach (var enricher in _webRequestEventEnrichers)
                 {
-                    await enricher.EnrichEvent(enrichContext);
+                    await enricher.EnrichEventAsync(enrichContext);
 
                     if (feature.IsEventIgnored)
                     {

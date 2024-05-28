@@ -355,7 +355,7 @@ public class IntegrationTestsStartup
 
 public class Enricher : IWebRequestEventEnricher
 {
-    public Task EnrichEvent(EnrichWebRequestEventContext context)
+    public Task EnrichEventAsync(EnrichWebRequestEventContext context)
     {
         context.Event.AddData("Enriched", "42");
         return Task.CompletedTask;
