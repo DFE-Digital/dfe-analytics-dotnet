@@ -1,6 +1,8 @@
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -179,8 +181,9 @@ public class DfeAnalyticsMiddleware
         @event.AnonymizedUserAgentAndIp = GetAnonymizedUserAgentAndIp(context);
         @event.RequestId = context.TraceIdentifier;
         @event.RequestMethod = context.Request.Method;
-        @event.RequestPath = context.Request.Path;
-        @event.RequestQuery = context.Request.Query.ToDictionary(q => q.Key, q => q.Value.Where(v => v is not null).Select(v => v!).ToArray());
+        @event.RequestPath = context.Request.PathBase + context.Request.Path;
+        @event.RequestQuery = context.Request.Query
+            .ToDictionary(q => q.Key, q => q.Value.Where(v => v is not null).Select(v => v!).ToArray());
         @event.RequestReferer = context.Request.Headers.Referer;
         @event.RequestUserAgent = context.Request.Headers.UserAgent;
         @event.UserId = AspNetCoreOptions.GetUserIdFromRequest?.Invoke(context);
@@ -188,6 +191,20 @@ public class DfeAnalyticsMiddleware
         if (@event.UserId is not null && AspNetCoreOptions.PseudonymizeUserId)
         {
             @event.UserId = Event.Pseudonymize(@event.UserId);
+        }
+
+        if (AspNetCoreOptions.RestoreOriginalPathAndQueryString)
+        {
+            if (context.Features.Get<IExceptionHandlerFeature>() is IExceptionHandlerFeature exceptionHandlerFeature)
+            {
+                @event.RequestPath = context.Request.PathBase + exceptionHandlerFeature.Path;
+            }
+            else if (context.Features.Get<IStatusCodeReExecuteFeature>() is IStatusCodeReExecuteFeature statusCodeReExecuteFeature)
+            {
+                @event.RequestPath = statusCodeReExecuteFeature.OriginalPathBase + statusCodeReExecuteFeature.OriginalPath;
+                @event.RequestQuery = QueryHelpers.ParseQuery(statusCodeReExecuteFeature.OriginalQueryString)
+                    .ToDictionary(q => q.Key, q => q.Value.Where(v => v is not null).Select(v => v!).ToArray());
+            }
         }
     }
 
@@ -217,6 +234,12 @@ public class DfeAnalyticsMiddleware
 
         @event.ResponseContentType = context.Response.ContentType;
         @event.ResponseStatus = context.Response.StatusCode.ToString();
+
+        if (AspNetCoreOptions.RestoreOriginalStatusCode &&
+            context.Features.Get<IStatusCodeReExecuteFeature>() is IStatusCodeReExecuteFeature statusCodeReExecuteFeature)
+        {
+            @event.ResponseStatus = statusCodeReExecuteFeature.OriginalStatusCode.ToString();
+        }
 
         // We may not have been able to get the user the first time around (depending on the order middleware is registered);
         // if UserId is not set then try to get it now.

@@ -41,6 +41,21 @@ public class DfeAnalyticsAspNetCoreOptions
     public PartitionedRateLimiter<HttpContext>? RateLimiter { get; set; }
 
     /// <summary>
+    /// Whether the original path and query string should be used for requests that have been reexecuted
+    /// using StatusCodePagesMiddleware or ExceptionHandlerMiddleware.
+    /// </summary>
+    /// <remarks>
+    /// The default is <see langword="true"/>.
+    /// </remarks>
+    public bool RestoreOriginalPathAndQueryString { get; set; } = true;
+
+    /// <summary>
+    /// Whether the original response status code should be used for requests that have been reexecuted
+    /// using StatusCodePagesMiddleware.
+    /// </summary>
+    public bool RestoreOriginalStatusCode { get; set; } = false;
+
+    /// <summary>
     /// Gets the current user's ID from the <see cref="HttpContext"/> using the <see cref="UserIdClaimType"/> claim.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/>.</param>

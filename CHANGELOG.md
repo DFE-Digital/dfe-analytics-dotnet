@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+Adds `RestoreOriginalPathAndQueryString` and `RestoreOriginalStatusCode` properties to `DfeAnalyticsAspNetCoreOptions`.
+
 ## 0.2.1
 
 A `IWebRequestEventEnricher` interface has been added so that applications can modify web request events before they are sent to BigQuery.
