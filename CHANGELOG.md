@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.2
 
 Adds `RestoreOriginalPathAndQueryString` and `RestoreOriginalStatusCode` properties to `DfeAnalyticsAspNetCoreOptions`.
 
