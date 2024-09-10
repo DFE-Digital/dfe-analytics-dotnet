@@ -122,7 +122,7 @@ public sealed class AksFederatedBigQueryClientProvider : IBigQueryClientProvider
         {
             var assertion = await File.ReadAllTextAsync(_tokenPath);
 
-            var request = new HttpRequestMessage(HttpMethod.Get, $"https://login.microsoftonline.com/{_tenantId}/oauth2/v2.0/token")
+            var request = new HttpRequestMessage(HttpMethod.Post, $"https://login.microsoftonline.com/{_tenantId}/oauth2/v2.0/token")
             {
                 Content = new FormUrlEncodedContent(new Dictionary<string, string>()
                 {
