@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.3
+
+Fixed `ProjectNumber` option to read from `ProjectNumber` configuration key instead of `ProjectId`.
+
 ## 0.2.2
 
 Adds `RestoreOriginalPathAndQueryString` and `RestoreOriginalStatusCode` properties to `DfeAnalyticsAspNetCoreOptions`.

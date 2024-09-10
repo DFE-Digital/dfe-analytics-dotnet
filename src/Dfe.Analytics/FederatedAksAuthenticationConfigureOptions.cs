@@ -18,7 +18,7 @@ internal class FederatedAksAuthenticationConfigureOptions : IConfigureOptions<Fe
 
         var section = _configuration.GetSection(Constants.RootConfigurationSectionName);
 
-        section.AssignConfigurationValueIfNotEmpty("ProjectId", v => options.ProjectNumber = v);
+        section.AssignConfigurationValueIfNotEmpty("ProjectNumber", v => options.ProjectNumber = v);
         section.AssignConfigurationValueIfNotEmpty("WorkloadIdentityPoolName", v => options.WorkloadIdentityPoolName = v);
         section.AssignConfigurationValueIfNotEmpty("WorkloadIdentityPoolProviderName", v => options.WorkloadIdentityPoolProviderName = v);
         section.AssignConfigurationValueIfNotEmpty("ServiceAccountEmail", v => options.ServiceAccountEmail = v);
