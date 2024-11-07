@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.4
 
 Amended `FederatedAksAuthenticationOptions` to reduce the number of options required; `Audience` and `GenerateAccessTokenUrl` are now the only keys required.
 For backwards compatibility these will be derived from the old configuration keys if they're provided.
