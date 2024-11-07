@@ -8,53 +8,29 @@ namespace Dfe.Analytics;
 public class FederatedAksAuthenticationOptions
 {
     /// <summary>
-    /// The project number.
+    /// The workflow identity pool provider audience.
     /// </summary>
     [DisallowNull]
-    public string? ProjectNumber { get; set; }
+    public string? Audience { get; set; }
 
     /// <summary>
-    /// The workflow identity pool name.
+    /// The URL for retrieving an access token for accessing BigQuery.
     /// </summary>
     [DisallowNull]
-    public string? WorkloadIdentityPoolName { get; set; }
+    public string? GenerateAccessTokenUrl { get; set; }
 
-    /// <summary>
-    /// The workflow identity pool provider name.
-    /// </summary>
-    [DisallowNull]
-    public string? WorkloadIdentityPoolProviderName { get; set; }
-
-    /// <summary>
-    /// The service account email.
-    /// </summary>
-    [DisallowNull]
-    public string? ServiceAccountEmail { get; set; }
-
-    [MemberNotNull(nameof(ProjectNumber))]
-    [MemberNotNull(nameof(WorkloadIdentityPoolName))]
-    [MemberNotNull(nameof(WorkloadIdentityPoolProviderName))]
-    [MemberNotNull(nameof(ServiceAccountEmail))]
+    [MemberNotNull(nameof(Audience))]
+    [MemberNotNull(nameof(GenerateAccessTokenUrl))]
     internal void ValidateOptions()
     {
-        if (ProjectNumber is null)
+        if (Audience is null)
         {
-            throw new InvalidOperationException($"{nameof(ProjectNumber)} has not been configured.");
+            throw new InvalidOperationException($"{nameof(Audience)} has not been configured.");
         }
 
-        if (WorkloadIdentityPoolName is null)
+        if (GenerateAccessTokenUrl is null)
         {
-            throw new InvalidOperationException($"{nameof(WorkloadIdentityPoolName)} has not been configured.");
-        }
-
-        if (WorkloadIdentityPoolProviderName is null)
-        {
-            throw new InvalidOperationException($"{nameof(WorkloadIdentityPoolProviderName)} has not been configured.");
-        }
-
-        if (ServiceAccountEmail is null)
-        {
-            throw new InvalidOperationException($"{nameof(ServiceAccountEmail)} has not been configured.");
+            throw new InvalidOperationException($"{nameof(GenerateAccessTokenUrl)} has not been configured.");
         }
     }
 }

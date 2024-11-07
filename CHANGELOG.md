@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+Amended `FederatedAksAuthenticationOptions` to reduce the number of options required; `Audience` and `GenerateAccessTokenUrl` are now the only keys required.
+For backwards compatibility these will be derived from the old configuration keys if they're provided.
+
+If `CredentialsJson` is available in configuration then `Audience` and `GenerateAccessTokenUrl` will be sourced from there.
+
 ## 0.2.3
 
 Fixed `ProjectNumber` option to read from `ProjectNumber` configuration key instead of `ProjectId`.

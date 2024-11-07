@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Google.Apis.Auth.OAuth2;
+using Google.Apis.Bigquery.v2.Data;
 using Google.Cloud.BigQuery.V2;
 using Microsoft.Extensions.Options;
 
@@ -106,10 +107,23 @@ public sealed class AksFederatedBigQueryClientProvider : IBigQueryClientProvider
     {
         _client?.Dispose();
 
+        var projectId = GetProjectId();
+
         var (token, expires) = await GetAccessTokenAsync();
         var credential = GoogleCredential.FromAccessToken(token);
-        _client = BigQueryClient.Create(_options.ProjectNumber!, credential);
+        _client = BigQueryClient.Create(projectId, credential);
         _clientExpiry = expires;
+    }
+
+    private string GetProjectId()
+    {
+        if (!_options.Audience!.StartsWith("//iam.googleapis.com/projects/"))
+        {
+            throw new InvalidOperationException($"Unexpected {nameof(_options.Audience)} format.");
+        }
+
+        var projectId = _options.Audience["//iam.googleapis.com/projects/".Length..].Split('/')[0];
+        return projectId;
     }
 
     private async Task<(string AccessToken, DateTimeOffset Expires)> GetAccessTokenAsync()
@@ -145,9 +159,7 @@ public sealed class AksFederatedBigQueryClientProvider : IBigQueryClientProvider
 
         async Task<string> ExchangeTokenAsync(string azureToken)
         {
-            var audience = $"//iam.googleapis.com/projects/{Uri.EscapeDataString(_options.ProjectNumber!)}/" +
-                $"locations/global/workloadIdentityPools/{Uri.EscapeDataString(_options.WorkloadIdentityPoolName!)}/" +
-                $"providers/{Uri.EscapeDataString(_options.WorkloadIdentityPoolProviderName!)}";
+            var audience = _options.Audience;
 
             var request = new HttpRequestMessage(HttpMethod.Post, "https://sts.googleapis.com/v1/token")
             {
@@ -173,9 +185,7 @@ public sealed class AksFederatedBigQueryClientProvider : IBigQueryClientProvider
 
         async Task<(string AccessToken, DateTimeOffset Expires)> GetBigQueryTokenAsync(string googleToken)
         {
-            var request = new HttpRequestMessage(
-                HttpMethod.Post,
-                $"https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/{Uri.EscapeDataString(_options.ServiceAccountEmail!)}:generateAccessToken")
+            var request = new HttpRequestMessage(HttpMethod.Post, _options.GenerateAccessTokenUrl)
             {
                 Headers =
                 {
