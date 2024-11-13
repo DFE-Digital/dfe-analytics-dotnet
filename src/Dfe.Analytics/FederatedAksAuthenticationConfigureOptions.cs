@@ -53,7 +53,7 @@ internal class FederatedAksAuthenticationConfigureOptions : IConfigureOptions<Fe
 
             if (options.GenerateAccessTokenUrl is null &&
                 credentialsJsonDoc.RootElement.TryGetProperty("service_account_impersonation_url", out var impersonationUrlElement) &&
-                impersonationUrlElement.ValueKind != JsonValueKind.String)
+                impersonationUrlElement.ValueKind == JsonValueKind.String)
             {
                 options.GenerateAccessTokenUrl = impersonationUrlElement.GetString()!;
             }

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.5
+
+Fixed populating `GenerateAccessTokenUrl` from `CredentialsJson`.
+
 ## 0.2.4
 
 Amended `FederatedAksAuthenticationOptions` to reduce the number of options required; `Audience` and `GenerateAccessTokenUrl` are now the only keys required.
