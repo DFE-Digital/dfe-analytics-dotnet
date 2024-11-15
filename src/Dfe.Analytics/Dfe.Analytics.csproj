@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -20,13 +20,22 @@
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" PrivateAssets="all" />
     <PackageReference Include="Google.Cloud.BigQuery.V2" Version="[3.0,4.0)" />
-    <PackageReference Include="Microsoft.Extensions.Configuration" Version="[8.0,9.0)" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="[8.0,9.0)" />
-    <PackageReference Include="Microsoft.Extensions.Options" Version="[8.0,9.0)" />
     <PackageReference Include="MinVer" Version="4.2.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="[8.0,9.0)" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="[8.0,9.0)" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="[8.0,9.0)" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="[9.0,10.0)" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="[9.0,10.0)" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="[9.0,10.0)" />
   </ItemGroup>
 
   <ItemGroup>

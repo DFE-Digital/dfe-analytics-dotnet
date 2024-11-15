@@ -19,6 +19,13 @@ jobs:
       with:
         fetch-depth: 0  # Important for minver to create the right version number
 
+    - name: Setup dotnet
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          8.0.x
+          9.0.x
+
     - name: Restore
       run: dotnet restore
 

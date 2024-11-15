@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.6
+
+Add a .NET 9 target.
+
 ## 0.2.5
 
 Fixed populating `GenerateAccessTokenUrl` from `CredentialsJson`.
