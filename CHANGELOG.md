@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.6
+
+Amends dependency versions to work with .NET 9.
+
 ## 0.2.5
 
 Fixed populating `GenerateAccessTokenUrl` from `CredentialsJson`.
