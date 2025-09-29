@@ -75,12 +75,12 @@ builder.Services.AddDfeAnalytics(options =>
 
 As well as the `CredentialsJson` above, the library will look for the following additional BigQuery configuration:
 
-| Configuration key | Description |
-| --- | --- |
-| `DfeAnalytics:DatasetId` | *REQUIRED* The BigQuery dataset to write events to. |
-| `DfeAnalytics:Environment` | *REQUIRED* The environment name (populates the `environment` field in the event). |
-| `DfeAnalytics:Namespace` | The application's namespace (populates the `namespace` field in the event.) By default the application's assembly name will be used. |
-| `DfeAnalytics:TableId` | The BigQuery table name to write events to. Defaults to `events`. |
+| Configuration key          | Description                                                                                                                          |
+|----------------------------|--------------------------------------------------------------------------------------------------------------------------------------|
+| `DfeAnalytics:DatasetId`   | *REQUIRED* The BigQuery dataset to write events to.                                                                                  |
+| `DfeAnalytics:Environment` | *REQUIRED* The environment name (populates the `environment` field in the event).                                                    |
+| `DfeAnalytics:Namespace`   | The application's namespace (populates the `namespace` field in the event.) By default the application's assembly name will be used. |
+| `DfeAnalytics:TableId`     | The BigQuery table name to write events to. Defaults to `events`.                                                                    |
 
 The configuration above can also be set in code:
 ```cs
@@ -92,10 +92,9 @@ builder.Services.AddDfeAnalytics(options =>
 
 The ASP.NET Core integration has the following configuration options:
 
-| Configuration key | Description |
-| --- | --- |
+| Configuration key                         | Description                                                                                                                     |
+|-------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------|
 | `DfeAnalytics:AspNetCore:UserIdClaimType` | The claim type that contains the user's ID. Defaults to `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier`. |
-| `DfeAnalytics:AspNetCore:PseudonymizeUserId` | Whether to pseudonymize the user_id field in the web request event. Defaults to `false`. |
 
 The configuration about can also be set in code:
 ```cs

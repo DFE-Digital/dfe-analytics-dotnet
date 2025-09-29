@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+Removes the option to pseudonymize the user ID.
+
 ## 0.2.6
 
 Amends dependency versions to work with .NET 9.

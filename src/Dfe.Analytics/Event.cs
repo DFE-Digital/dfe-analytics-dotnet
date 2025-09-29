@@ -215,10 +215,7 @@ public class Event
             { "event_tags", Tags.ToArray() },
         };
 
-    /// <summary>
-    /// Returns a hexadecimal SHA256 hash of <paramref name="value"/>.
-    /// </summary>
-    public static string Pseudonymize(string value)
+    internal static string Anonymize(string value)
     {
         // https://github.com/DFE-Digital/dfe-analytics/blob/8a181ff385810dbe7c7bb7fec5a55033a7b1fad0/lib/dfe/analytics.rb#L149-L151
         var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(value));

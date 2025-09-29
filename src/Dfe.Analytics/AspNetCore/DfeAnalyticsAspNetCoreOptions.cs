@@ -23,14 +23,6 @@ public class DfeAnalyticsAspNetCoreOptions
     public string? UserIdClaimType { get; set; }
 
     /// <summary>
-    /// Whether to pseudonymize the user_id field in the web request event.
-    /// </summary>
-    /// <remarks>
-    /// The default is <see langword="false"/>.
-    /// </remarks>
-    public bool PseudonymizeUserId { get; set; }
-
-    /// <summary>
     /// A filter that controls whether a web request event is sent for a given <see cref="HttpContext"/>.
     /// </summary>
     public Func<HttpContext, bool>? RequestFilter { get; set; }

@@ -188,11 +188,6 @@ public class DfeAnalyticsMiddleware
         @event.RequestUserAgent = context.Request.Headers.UserAgent;
         @event.UserId = AspNetCoreOptions.GetUserIdFromRequest?.Invoke(context);
 
-        if (@event.UserId is not null && AspNetCoreOptions.PseudonymizeUserId)
-        {
-            @event.UserId = Event.Pseudonymize(@event.UserId);
-        }
-
         if (AspNetCoreOptions.RestoreOriginalPathAndQueryString)
         {
             if (context.Features.Get<IExceptionHandlerFeature>() is IExceptionHandlerFeature exceptionHandlerFeature)
@@ -218,7 +213,7 @@ public class DfeAnalyticsMiddleware
     /// <returns>A <see cref="string"/> with an anonymized form of the client's IP address and user agent.</returns>
     protected virtual string? GetAnonymizedUserAgentAndIp(HttpContext context) =>
         context.Connection.RemoteIpAddress is not null ?
-            Event.Pseudonymize(context.Request.Headers.UserAgent.ToString() + context.Connection.RemoteIpAddress) :
+            Event.Anonymize(context.Request.Headers.UserAgent + context.Connection.RemoteIpAddress) :
             null;
 
     /// <summary>
