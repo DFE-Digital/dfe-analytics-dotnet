@@ -22,7 +22,7 @@
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" PrivateAssets="all" />
     <PackageReference Include="Google.Cloud.BigQuery.V2" Version="[3.0,4.0)" />
-    <PackageReference Include="Microsoft.Extensions.Configuration" Version="[8.0,)" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.9" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="[8.0,)" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="[8.0,)" />
     <PackageReference Include="MinVer" Version="4.2.0">
