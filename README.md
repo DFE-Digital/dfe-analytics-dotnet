@@ -128,7 +128,8 @@ Should you want to prevent the library from sending an event to BigQuery for a p
 using Dfe.Analytics.AspNetCore;
 
 //...
-feature.IgnoreWebRequestEvent();
+httpContext.IgnoreWebRequestEvent();
+```
 
 
 ### Modifying web request events
