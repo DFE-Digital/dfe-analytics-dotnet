@@ -15,8 +15,10 @@
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <AnalysisMode>All</AnalysisMode>
+    <NoWarn>$(NoWarn);CA1716;CA1852;CA1848</NoWarn>
   </PropertyGroup>
-  
+
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" PrivateAssets="all" />
     <PackageReference Include="Google.Cloud.BigQuery.V2" Version="[3.0,4.0)" />
@@ -32,5 +34,5 @@
   <ItemGroup>
     <None Include="$(RepoRoot)README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
-  
+
 </Project>

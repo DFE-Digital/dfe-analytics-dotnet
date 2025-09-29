@@ -6,14 +6,11 @@ using Microsoft.Extensions.Options;
 
 namespace Dfe.Analytics;
 
-internal class DfeAnalyticsConfigureOptions : IConfigureOptions<DfeAnalyticsOptions>
+#pragma warning disable CA1812
+internal class DfeAnalyticsConfigureOptions(IConfiguration configuration) : IConfigureOptions<DfeAnalyticsOptions>
+#pragma warning restore CA1812
 {
-    private readonly IConfiguration _configuration;
-
-    public DfeAnalyticsConfigureOptions(IConfiguration configuration)
-    {
-        _configuration = configuration;
-    }
+    private readonly IConfiguration _configuration = configuration;
 
     public void Configure(DfeAnalyticsOptions options)
     {

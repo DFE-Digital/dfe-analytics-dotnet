@@ -7,7 +7,9 @@ namespace Dfe.Analytics;
 /// <summary>
 /// Extension methods for configuring DfE Analytics.
 /// </summary>
+#pragma warning disable CA1724
 public static class Extensions
+#pragma warning disable CA1724
 {
     /// <summary>
     /// Adds DfE Analytics services.
@@ -36,7 +38,7 @@ public static class Extensions
 
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DfeAnalyticsOptions>, DfeAnalyticsConfigureOptions>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IPostConfigureOptions<DfeAnalyticsOptions>, DfeAnalyticsPostConfigureOptions>());
-        services.TryAddSingleton<TimeProvider>(_ => TimeProvider.System);
+        services.TryAddSingleton(_ => TimeProvider.System);
         services.Configure(setupAction);
         services.TryAddSingleton<IBigQueryClientProvider, OptionsBigQueryClientProvider>();
 

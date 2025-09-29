@@ -3,14 +3,11 @@ using Microsoft.Extensions.Options;
 
 namespace Dfe.Analytics.AspNetCore;
 
-internal class DfeAnalyticsAspNetCoreConfigureOptions : IConfigureOptions<DfeAnalyticsAspNetCoreOptions>
+#pragma warning disable CA1812
+internal class DfeAnalyticsAspNetCoreConfigureOptions(IConfiguration configuration) : IConfigureOptions<DfeAnalyticsAspNetCoreOptions>
+#pragma warning restore CA1812
 {
-    private readonly IConfiguration _configuration;
-
-    public DfeAnalyticsAspNetCoreConfigureOptions(IConfiguration configuration)
-    {
-        _configuration = configuration;
-    }
+    private readonly IConfiguration _configuration = configuration;
 
     public void Configure(DfeAnalyticsAspNetCoreOptions options)
     {

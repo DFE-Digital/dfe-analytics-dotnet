@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Http;
 namespace Dfe.Analytics.AspNetCore;
 
 /// <summary>
-/// Contains the <see cref="Dfe.Analytics.Event"/> and <see cref="Microsoft.AspNetCore.Http.HttpContext"/> for a request.
+/// Contains the <see cref="Analytics.Event"/> and <see cref="Microsoft.AspNetCore.Http.HttpContext"/> for a request.
 /// </summary>
 public sealed class EnrichWebRequestEventContext
 {

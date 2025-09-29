@@ -17,7 +17,9 @@ public class FederatedAksAuthenticationOptions
     /// The URL for retrieving an access token for accessing BigQuery.
     /// </summary>
     [DisallowNull]
+#pragma warning disable CA1056
     public string? GenerateAccessTokenUrl { get; set; }
+#pragma warning restore CA1056
 
     [MemberNotNull(nameof(Audience))]
     [MemberNotNull(nameof(GenerateAccessTokenUrl))]

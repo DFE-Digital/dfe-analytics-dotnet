@@ -2,7 +2,6 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Google.Apis.Auth.OAuth2;
-using Google.Apis.Bigquery.v2.Data;
 using Google.Cloud.BigQuery.V2;
 using Microsoft.Extensions.Options;
 
@@ -55,7 +54,9 @@ public sealed class AksFederatedBigQueryClientProvider : IBigQueryClientProvider
         _timeProvider = timeProvider;
         _options = optionsAccessor.Value;
         GetConfigurationFromEnvironment();
-        _httpClient = new HttpClient(new SocketsHttpHandler() { PreAuthenticate = true });
+#pragma warning disable CA2000
+        _httpClient = new HttpClient(new HttpClientHandler() { PreAuthenticate = true, CheckCertificateRevocationList = true });
+#pragma warning restore CA2000
     }
 
     /// <inheritdoc/>
@@ -78,12 +79,9 @@ public sealed class AksFederatedBigQueryClientProvider : IBigQueryClientProvider
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         var now = _timeProvider.GetUtcNow();
-        if (_client is not null && (_clientExpiry - _expirationAllowance) > now)
-        {
-            return new ValueTask<BigQueryClient>(_client);
-        }
-
-        return CreateClientAsync();
+        return _client is not null && (_clientExpiry - _expirationAllowance) > now
+            ? new ValueTask<BigQueryClient>(_client)
+            : CreateClientAsync();
 
         async ValueTask<BigQueryClient> CreateClientAsync()
         {
@@ -111,13 +109,13 @@ public sealed class AksFederatedBigQueryClientProvider : IBigQueryClientProvider
 
         var (token, expires) = await GetAccessTokenAsync();
         var credential = GoogleCredential.FromAccessToken(token);
-        _client = BigQueryClient.Create(projectId, credential);
+        _client = await BigQueryClient.CreateAsync(projectId, credential);
         _clientExpiry = expires;
     }
 
     private string GetProjectId()
     {
-        if (!_options.Audience!.StartsWith("//iam.googleapis.com/projects/"))
+        if (!_options.Audience!.StartsWith("//iam.googleapis.com/projects/", StringComparison.Ordinal))
         {
             throw new InvalidOperationException($"Unexpected {nameof(_options.Audience)} format.");
         }
@@ -136,17 +134,15 @@ public sealed class AksFederatedBigQueryClientProvider : IBigQueryClientProvider
         {
             var assertion = await File.ReadAllTextAsync(_tokenPath);
 
-            var request = new HttpRequestMessage(HttpMethod.Post, $"https://login.microsoftonline.com/{_tenantId}/oauth2/v2.0/token")
+            using var request = new HttpRequestMessage(HttpMethod.Post, $"https://login.microsoftonline.com/{_tenantId}/oauth2/v2.0/token");
+            request.Content = new FormUrlEncodedContent(new Dictionary<string, string>()
             {
-                Content = new FormUrlEncodedContent(new Dictionary<string, string>()
-                {
-                    { "client_id", _clientId },
-                    { "scope", "api://AzureADTokenExchange/.default" },
-                    { "client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer" },
-                    { "client_assertion", assertion },
-                    { "grant_type", "client_credentials" }
-                })
-            };
+                { "client_id", _clientId },
+                { "scope", "api://AzureADTokenExchange/.default" },
+                { "client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer" },
+                { "client_assertion", assertion },
+                { "grant_type", "client_credentials" }
+            });
 
             var response = await _httpClient.SendAsync(request);
             response.EnsureTokenAcquisitionSucceeded(exceptionMessage: "Failed acquiring access token from Azure.");
@@ -161,18 +157,16 @@ public sealed class AksFederatedBigQueryClientProvider : IBigQueryClientProvider
         {
             var audience = _options.Audience;
 
-            var request = new HttpRequestMessage(HttpMethod.Post, "https://sts.googleapis.com/v1/token")
+            using var request = new HttpRequestMessage(HttpMethod.Post, "https://sts.googleapis.com/v1/token");
+            request.Content = JsonContent.Create(new JsonObject()
             {
-                Content = JsonContent.Create(new JsonObject()
-                {
-                    { "grantType", "urn:ietf:params:oauth:grant-type:token-exchange" },
-                    { "audience", audience },
-                    { "scope", "https://www.googleapis.com/auth/cloud-platform" },
-                    { "requestedTokenType", "urn:ietf:params:oauth:token-type:access_token" },
-                    { "subjectToken", azureToken },
-                    { "subjectTokenType", "urn:ietf:params:oauth:token-type:jwt" }
-                })
-            };
+                { "grantType", "urn:ietf:params:oauth:grant-type:token-exchange" },
+                { "audience", audience },
+                { "scope", "https://www.googleapis.com/auth/cloud-platform" },
+                { "requestedTokenType", "urn:ietf:params:oauth:token-type:access_token" },
+                { "subjectToken", azureToken },
+                { "subjectTokenType", "urn:ietf:params:oauth:token-type:jwt" }
+            });
 
             var response = await _httpClient.SendAsync(request);
             response.EnsureTokenAcquisitionSucceeded(exceptionMessage: "Failed exchanging access token.");
@@ -185,17 +179,12 @@ public sealed class AksFederatedBigQueryClientProvider : IBigQueryClientProvider
 
         async Task<(string AccessToken, DateTimeOffset Expires)> GetBigQueryTokenAsync(string googleToken)
         {
-            var request = new HttpRequestMessage(HttpMethod.Post, _options.GenerateAccessTokenUrl)
+            using var request = new HttpRequestMessage(HttpMethod.Post, _options.GenerateAccessTokenUrl);
+            request.Headers.Authorization = new("Bearer", googleToken);
+            request.Content = JsonContent.Create(new JsonObject()
             {
-                Headers =
-                {
-                    Authorization = new("Bearer", googleToken)
-                },
-                Content = JsonContent.Create(new JsonObject()
-                {
-                    { "scope", new JsonArray("https://www.googleapis.com/auth/cloud-platform") }
-                })
-            };
+                { "scope", new JsonArray("https://www.googleapis.com/auth/cloud-platform") }
+            });
 
             var response = await _httpClient.SendAsync(request);
             response.EnsureTokenAcquisitionSucceeded(exceptionMessage: "Failed acquiring access token from Google.");
@@ -213,12 +202,9 @@ file static class Extensions
 {
     public static JsonElement GetRequiredProperty(this JsonDocument doc, string propertyName)
     {
-        if (!doc.RootElement.TryGetProperty(propertyName, out var result) || result.ValueKind == JsonValueKind.Null)
-        {
-            throw new InvalidOperationException($"Document was missing expected property: '{propertyName}'.");
-        }
-
-        return result;
+        return !doc.RootElement.TryGetProperty(propertyName, out var result) || result.ValueKind == JsonValueKind.Null
+            ? throw new InvalidOperationException($"Document was missing expected property: '{propertyName}'.")
+            : result;
     }
 
     public static void EnsureTokenAcquisitionSucceeded(this HttpResponseMessage response, string exceptionMessage)

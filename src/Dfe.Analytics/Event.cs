@@ -34,7 +34,7 @@ public class Event
         get => _environment;
         set
         {
-            ArgumentNullException.ThrowIfNullOrEmpty(value);
+            ArgumentException.ThrowIfNullOrEmpty(value);
             _environment = value;
         }
     }
@@ -118,7 +118,7 @@ public class Event
         ArgumentNullException.ThrowIfNull(key);
         ArgumentNullException.ThrowIfNull(value);
 
-        AddData(key, new[] { value });
+        AddData(key, [value]);
     }
 
     /// <summary>
@@ -130,7 +130,7 @@ public class Event
         ArgumentNullException.ThrowIfNull(key);
         ArgumentNullException.ThrowIfNull(values);
 
-        Data.Add(key, values.ToList());
+        Data.Add(key, [.. values]);
     }
 
     /// <summary>
@@ -219,6 +219,8 @@ public class Event
     {
         // https://github.com/DFE-Digital/dfe-analytics/blob/8a181ff385810dbe7c7bb7fec5a55033a7b1fad0/lib/dfe/analytics.rb#L149-L151
         var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(value));
-        return Convert.ToHexString(hashBytes).ToLower();
+#pragma warning disable CA1308
+        return Convert.ToHexString(hashBytes).ToLowerInvariant();
+#pragma warning restore CA1308
     }
 }

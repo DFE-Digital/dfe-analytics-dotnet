@@ -45,7 +45,7 @@ public class DfeAnalyticsAspNetCoreOptions
     /// Whether the original response status code should be used for requests that have been reexecuted
     /// using StatusCodePagesMiddleware.
     /// </summary>
-    public bool RestoreOriginalStatusCode { get; set; } = false;
+    public bool RestoreOriginalStatusCode { get; set; }
 
     /// <summary>
     /// Gets the current user's ID from the <see cref="HttpContext"/> using the <see cref="UserIdClaimType"/> claim.
@@ -57,11 +57,8 @@ public class DfeAnalyticsAspNetCoreOptions
     {
         ArgumentNullException.ThrowIfNull(httpContext);
 
-        if (UserIdClaimType is null)
-        {
-            throw new InvalidOperationException($"{nameof(UserIdClaimType)} is not configured.");
-        }
-
-        return httpContext.User.FindFirstValue(UserIdClaimType);
+        return UserIdClaimType is null
+            ? throw new InvalidOperationException($"{nameof(UserIdClaimType)} is not configured.")
+            : httpContext.User.FindFirstValue(UserIdClaimType);
     }
 }

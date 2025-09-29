@@ -4,14 +4,11 @@ using Microsoft.Extensions.Options;
 
 namespace Dfe.Analytics;
 
-internal class FederatedAksAuthenticationConfigureOptions : IConfigureOptions<FederatedAksAuthenticationOptions>
+#pragma warning disable CA1812
+internal class FederatedAksAuthenticationConfigureOptions(IConfiguration configuration) : IConfigureOptions<FederatedAksAuthenticationOptions>
+#pragma warning restore CA1812
 {
-    private readonly IConfiguration _configuration;
-
-    public FederatedAksAuthenticationConfigureOptions(IConfiguration configuration)
-    {
-        _configuration = configuration;
-    }
+    private readonly IConfiguration _configuration = configuration;
 
     public void Configure(FederatedAksAuthenticationOptions options)
     {

@@ -46,7 +46,7 @@ public class WebRequestEventFeature
     /// <summary>
     /// Whether an event has been sent for this <see cref="HttpContext"/>.
     /// </summary>
-    internal bool EventSent { get; private set; } = false;
+    internal bool EventSent { get; private set; }
 
     internal void MarkEventSent()
     {

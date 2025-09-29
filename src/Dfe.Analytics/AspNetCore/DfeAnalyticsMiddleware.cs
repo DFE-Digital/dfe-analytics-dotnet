@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
@@ -211,10 +212,12 @@ public class DfeAnalyticsMiddleware
     /// </remarks>
     /// <param name="context">The current <see cref="HttpContext"/>.</param>
     /// <returns>A <see cref="string"/> with an anonymized form of the client's IP address and user agent.</returns>
-    protected virtual string? GetAnonymizedUserAgentAndIp(HttpContext context) =>
-        context.Connection.RemoteIpAddress is not null ?
-            Event.Anonymize(context.Request.Headers.UserAgent + context.Connection.RemoteIpAddress) :
-            null;
+    protected virtual string? GetAnonymizedUserAgentAndIp(HttpContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        return context.Connection.RemoteIpAddress is not null ? Event.Anonymize(context.Request.Headers.UserAgent + context.Connection.RemoteIpAddress) : null;
+    }
 
     /// <summary>
     /// Populates the response properties on <paramref name="event"/> with the information in <paramref name="context"/>.
@@ -228,12 +231,12 @@ public class DfeAnalyticsMiddleware
         ArgumentNullException.ThrowIfNull(context);
 
         @event.ResponseContentType = context.Response.ContentType;
-        @event.ResponseStatus = context.Response.StatusCode.ToString();
+        @event.ResponseStatus = context.Response.StatusCode.ToString(CultureInfo.InvariantCulture);
 
         if (AspNetCoreOptions.RestoreOriginalStatusCode &&
             context.Features.Get<IStatusCodeReExecuteFeature>() is IStatusCodeReExecuteFeature statusCodeReExecuteFeature)
         {
-            @event.ResponseStatus = statusCodeReExecuteFeature.OriginalStatusCode.ToString();
+            @event.ResponseStatus = statusCodeReExecuteFeature.OriginalStatusCode.ToString(CultureInfo.InvariantCulture);
         }
 
         // We may not have been able to get the user the first time around (depending on the order middleware is registered);
