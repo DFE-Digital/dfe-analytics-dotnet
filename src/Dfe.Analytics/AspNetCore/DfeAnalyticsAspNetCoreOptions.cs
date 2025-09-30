@@ -10,7 +10,7 @@ namespace Dfe.Analytics.AspNetCore;
 public class DfeAnalyticsAspNetCoreOptions
 {
     /// <summary>
-    /// A delegate that returns the signed in user's ID, if any.
+    /// A delegate that returns the signed-in user's ID, if any.
     /// </summary>
     /// <remarks>
     /// The default returns the value of the first <see cref="UserIdClaimType"/> claim from <see cref="HttpContext.User"/> property.
@@ -18,7 +18,7 @@ public class DfeAnalyticsAspNetCoreOptions
     public Func<HttpContext, string?>? GetUserIdFromRequest { get; set; }
 
     /// <summary>
-    /// The claim type that contains the signed in user's ID.
+    /// The claim type that contains the signed-in user's ID.
     /// </summary>
     public string? UserIdClaimType { get; set; }
 

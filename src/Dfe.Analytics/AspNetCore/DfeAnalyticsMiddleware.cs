@@ -15,7 +15,6 @@ namespace Dfe.Analytics.AspNetCore;
 public class DfeAnalyticsMiddleware
 {
     private readonly RequestDelegate _next;
-    private readonly IBigQueryClientProvider _bigQueryClientProvider;
     private readonly IEnumerable<IWebRequestEventEnricher> _webRequestEventEnrichers;
     private readonly ILogger<DfeAnalyticsMiddleware> _logger;
 
@@ -23,7 +22,6 @@ public class DfeAnalyticsMiddleware
     /// Creates a new <see cref="DfeAnalyticsMiddleware"/>.
     /// </summary>
     /// <param name="next">The <see cref="RequestDelegate"/> representing the next middleware in the pipeline.</param>
-    /// <param name="bigQueryClientProvider">The <see cref="IBigQueryClientProvider"/>.</param>
     /// <param name="timeProvider">The <see cref="TimeProvider"/>.</param>
     /// <param name="optionsAccessor">The configuration options.</param>
     /// <param name="aspNetCoreOptionsAccessor">The middleware configuration options.</param>
@@ -31,7 +29,6 @@ public class DfeAnalyticsMiddleware
     /// <param name="logger">The logger instance.</param>
     public DfeAnalyticsMiddleware(
         RequestDelegate next,
-        IBigQueryClientProvider bigQueryClientProvider,
         TimeProvider timeProvider,
         IOptions<DfeAnalyticsOptions> optionsAccessor,
         IOptions<DfeAnalyticsAspNetCoreOptions> aspNetCoreOptionsAccessor,
@@ -39,7 +36,6 @@ public class DfeAnalyticsMiddleware
         ILogger<DfeAnalyticsMiddleware> logger)
     {
         ArgumentNullException.ThrowIfNull(next);
-        ArgumentNullException.ThrowIfNull(bigQueryClientProvider);
         ArgumentNullException.ThrowIfNull(timeProvider);
         ArgumentNullException.ThrowIfNull(optionsAccessor);
         ArgumentNullException.ThrowIfNull(aspNetCoreOptionsAccessor);
@@ -47,7 +43,6 @@ public class DfeAnalyticsMiddleware
         ArgumentNullException.ThrowIfNull(logger);
 
         _next = next;
-        _bigQueryClientProvider = bigQueryClientProvider;
         TimeProvider = timeProvider;
         _webRequestEventEnrichers = webRequestEventEnrichers;
         Options = optionsAccessor.Value;
@@ -123,7 +118,7 @@ public class DfeAnalyticsMiddleware
                     }
                 }
 
-                var bigQueryClient = await _bigQueryClientProvider.GetBigQueryClientAsync();
+                var bigQueryClient = Options.BigQueryClient;
 
                 var row = @event.ToBigQueryInsertRow();
 

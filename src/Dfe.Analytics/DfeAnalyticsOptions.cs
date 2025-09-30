@@ -47,11 +47,22 @@ public class DfeAnalyticsOptions
     /// </summary>
     public string? ProjectId { get; set; }
 
+    /// <summary>
+    /// The federated AKS authentication options.
+    /// </summary>
+    public FederatedAksAuthenticationOptions? FederatedAksAuthentication { get; set; }
+
+    [MemberNotNull(nameof(BigQueryClient))]
     [MemberNotNull(nameof(DatasetId))]
     [MemberNotNull(nameof(TableId))]
     [MemberNotNull(nameof(Environment))]
     internal void ValidateOptions()
     {
+        if (BigQueryClient is null)
+        {
+            throw new InvalidOperationException($"{nameof(BigQueryClient)} has not been configured.");
+        }
+
         if (DatasetId is null)
         {
             throw new InvalidOperationException($"{nameof(DatasetId)} has not been configured.");

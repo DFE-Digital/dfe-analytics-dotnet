@@ -40,40 +40,7 @@ public static class Extensions
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IPostConfigureOptions<DfeAnalyticsOptions>, DfeAnalyticsPostConfigureOptions>());
         services.TryAddSingleton(_ => TimeProvider.System);
         services.Configure(setupAction);
-        services.TryAddSingleton<IBigQueryClientProvider, OptionsBigQueryClientProvider>();
 
         return new DfeAnalyticsBuilder(services);
-    }
-
-    /// <summary>
-    /// Registers <see cref="AksFederatedBigQueryClientProvider"/> as the <see cref="IBigQueryClientProvider"/>.
-    /// </summary>
-    /// <param name="builder">The <see cref="DfeAnalyticsBuilder"/>.</param>
-    /// <returns>The <see cref="DfeAnalyticsBuilder"/> so that additional calls can be chained.</returns>
-    public static DfeAnalyticsBuilder UseFederatedAksBigQueryClientProvider(this DfeAnalyticsBuilder builder)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-
-        return builder.UseFederatedAksBigQueryClientProvider(_ => { });
-    }
-
-    /// <summary>
-    /// Registers <see cref="AksFederatedBigQueryClientProvider"/> and configures as the <see cref="IBigQueryClientProvider"/>.
-    /// </summary>
-    /// <param name="builder">The <see cref="DfeAnalyticsBuilder"/>.</param>
-    /// <param name="setupAction">
-    /// An <see cref="Action{FederatedAksAuthenticationOptions}"/> to configure the provided <see cref="FederatedAksAuthenticationOptions"/>.
-    /// </param>
-    /// <returns>The <see cref="DfeAnalyticsBuilder"/> so that additional calls can be chained.</returns>
-    public static DfeAnalyticsBuilder UseFederatedAksBigQueryClientProvider(this DfeAnalyticsBuilder builder, Action<FederatedAksAuthenticationOptions> setupAction)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(setupAction);
-
-        builder.Services.AddSingleton<IBigQueryClientProvider, AksFederatedBigQueryClientProvider>();
-        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<FederatedAksAuthenticationOptions>, FederatedAksAuthenticationConfigureOptions>());
-        builder.Services.Configure(setupAction);
-
-        return builder;
     }
 }
