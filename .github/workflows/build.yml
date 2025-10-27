@@ -43,7 +43,7 @@ jobs:
       run: dotnet pack src/Dfe.Analytics/ --configuration Release --no-build
 
     - name: Publish package artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: Dfe.Analytics.nupkg
         path: |
