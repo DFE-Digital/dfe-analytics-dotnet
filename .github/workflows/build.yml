@@ -41,6 +41,8 @@ jobs:
 
     - name: Package
       run: dotnet pack src/Dfe.Analytics/ --configuration Release --no-build
+      env:
+        MINVERBUILDMETADATA: build.${{ github.run_id }}.${{ github.run_attempt}}
 
     - name: Publish package artifact
       uses: actions/upload-artifact@v5
