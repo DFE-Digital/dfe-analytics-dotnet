@@ -23,6 +23,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dfe.Analytics.AspNetCore", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dfe.Analytics.Core", "src\Dfe.Analytics.Core\Dfe.Analytics.Core.csproj", "{E89CC59D-9F77-419E-BE4A-68CA9F59DC88}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dfe.Analytics.EFCore", "src\Dfe.Analytics.EFCore\Dfe.Analytics.EFCore.csproj", "{55934EC8-3AEE-4E9F-BBAA-6FB26CB8F701}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -41,6 +43,10 @@ Global
 		{E89CC59D-9F77-419E-BE4A-68CA9F59DC88}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E89CC59D-9F77-419E-BE4A-68CA9F59DC88}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E89CC59D-9F77-419E-BE4A-68CA9F59DC88}.Release|Any CPU.Build.0 = Release|Any CPU
+		{55934EC8-3AEE-4E9F-BBAA-6FB26CB8F701}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{55934EC8-3AEE-4E9F-BBAA-6FB26CB8F701}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{55934EC8-3AEE-4E9F-BBAA-6FB26CB8F701}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{55934EC8-3AEE-4E9F-BBAA-6FB26CB8F701}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -49,6 +55,7 @@ Global
 		{8511B92F-902C-4255-A8BA-8C53B4D7D60E} = {324AABEE-3901-49C5-BA3B-CF67C3ADBA7D}
 		{E7A79315-2F88-4999-8B07-F82A59CFFA16} = {279CE08B-C967-478E-AAD2-218C3308AB3F}
 		{E89CC59D-9F77-419E-BE4A-68CA9F59DC88} = {279CE08B-C967-478E-AAD2-218C3308AB3F}
+		{55934EC8-3AEE-4E9F-BBAA-6FB26CB8F701} = {279CE08B-C967-478E-AAD2-218C3308AB3F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {118BBBA5-C728-448A-9835-53E5DD47C4DD}
