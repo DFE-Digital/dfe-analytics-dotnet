@@ -37,7 +37,7 @@ jobs:
       run: dotnet build --configuration Release --no-restore
 
     - name: Test
-      run: dotnet test test/Dfe.Analytics.AspNetCore.Tests/ --configuration Release --no-build
+      run: dotnet test tests/Dfe.Analytics.AspNetCore.Tests/ --configuration Release --no-build
 
     - name: Package
       run: dotnet pack src/Dfe.Analytics/ --configuration Release --no-build
