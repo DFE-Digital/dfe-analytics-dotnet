@@ -3,6 +3,7 @@ using Dfe.Analytics.EFCore.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 
 namespace Dfe.Analytics.EFCore;
 
@@ -28,6 +29,7 @@ public static class Extensions
 
         services.AddOptions<AirbyteApiOptions>()
             .ValidateOnStart();
+        services.AddTransient<IPostConfigureOptions<AirbyteApiOptions>, ConfigureAirbyteApiOptionsFromEnvironment>();
 
         services
             .AddSingleton<AirbyteApiClient>()
