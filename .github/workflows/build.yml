@@ -43,6 +43,7 @@ jobs:
       run: |
         dotnet pack src/Dfe.Analytics.Core/ --configuration Release --no-build
         dotnet pack src/Dfe.Analytics.AspNetCore/ --configuration Release --no-build
+        dotnet pack src/Dfe.Analytics.AspNetCore/ --configuration Release --no-build
 
     - name: Publish package artifact
       uses: actions/upload-artifact@v6
