@@ -14,9 +14,11 @@ public class AirbyteApiClient(HttpClient httpClient)
     {
         ArgumentNullException.ThrowIfNull(connectionId);
 
-        var content = CreateJsonContent(request);
+        using var content = CreateJsonContent(request);
 
+#pragma warning disable CA2234
         var response = await httpClient.PatchAsync(
+#pragma warning restore CA2234
             $"api/public/v1/connections/{Uri.EscapeDataString(connectionId)}",
             content,
             cancellationToken);
@@ -38,7 +40,7 @@ public class AirbyteApiClient(HttpClient httpClient)
             .AddHttpMessageHandler(sp => new AuthenticatingHandler(sp.GetRequiredService<IOptions<AirbyteApiOptions>>()));
     }
 
-    private static HttpContent CreateJsonContent(object value)
+    private static JsonContent CreateJsonContent(object value)
     {
         // Airbyte API is fussy about the Content-Type header; it must be exactly "application/json"
         return JsonContent.Create(value, mediaType: new MediaTypeHeaderValue("application/json"), _serializerOptions);
@@ -67,9 +69,11 @@ public class AirbyteApiClient(HttpClient httpClient)
                 grant_type = "client_credentials"
             };
 
-            var request = new HttpRequestMessage(HttpMethod.Post, options.BaseAddress.TrimEnd('/') + "/api/public/v1/applications/token")
+            using var content = CreateJsonContent(requestBody);
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, options.BaseAddress.TrimEnd('/') + "/api/public/v1/applications/token")
             {
-                Content = JsonContent.Create(requestBody)
+                Content = content
             };
 
             var response = await base.SendAsync(request, cancellationToken);

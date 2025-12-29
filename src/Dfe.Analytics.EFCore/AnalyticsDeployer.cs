@@ -11,6 +11,8 @@ public class AnalyticsDeployer(AnalyticsConfigurationProvider configurationProvi
 {
     private const string PublicationName = "airbyte_publication";
 
+    private static readonly string[] _airbyteFieldNames = ["_ab_cdc_lsn", "_ab_cdc_deleted_at", "_ab_cdc_updated_at"];
+
     public async Task DeployAsync(DbContext dbContext, string airbyteConnectionId, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(dbContext);
@@ -94,7 +96,9 @@ public class AnalyticsDeployer(AnalyticsConfigurationProvider configurationProvi
         async Task ExecuteSqlAsync(string commandText)
         {
             await using var cmd = connection.CreateCommand();
+#pragma warning disable CA2100
             cmd.CommandText = commandText;
+#pragma warning restore CA2100
             await cmd.ExecuteNonQueryAsync(cancellationToken);
         }
     }
@@ -118,7 +122,7 @@ public class AnalyticsDeployer(AnalyticsConfigurationProvider configurationProvi
                         SyncMode = "incremental_append",
                         CursorField = ["_ab_cdc_lsn"],
                         PrimaryKey = [t.PrimaryKey.ColumnNames],
-                        SelectedFields = new[] { "_ab_cdc_lsn", "_ab_cdc_deleted_at", "_ab_cdc_updated_at" }.Concat(t.Columns.Select(c => c.Name))
+                        SelectedFields = _airbyteFieldNames.Concat(t.Columns.Select(c => c.Name))
                             .Select(n => new UpdateConnectionDetailsRequestConfigurationStreamField
                             {
                                 FieldPath = [n]
