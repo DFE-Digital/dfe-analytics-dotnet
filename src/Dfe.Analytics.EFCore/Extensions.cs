@@ -7,7 +7,9 @@ using Microsoft.Extensions.Options;
 
 namespace Dfe.Analytics.EFCore;
 
+#pragma warning disable CA1724
 public static class Extensions
+#pragma warning restore CA1724
 {
     public static IHostApplicationBuilder AddDfeAnalyticsDeploymentTools(this IHostApplicationBuilder builder)
     {
