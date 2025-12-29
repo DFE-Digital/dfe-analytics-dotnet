@@ -35,7 +35,7 @@ internal sealed class FederatedAksSubjectTokenProvider :
         var response = await _httpClient.SendAsync(request, taskCancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            throw new DfeAnalyticsAuthenticationException(
+            throw new DfeAnalyticsException(
                 $"Failed acquiring access token from {request.RequestUri!.Host}; " +
                 $"response status code does not indicate success: {response.StatusCode}.\n\n" +
                 await response.Content.ReadAsStringAsync(taskCancellationToken));

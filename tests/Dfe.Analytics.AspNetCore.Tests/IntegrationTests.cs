@@ -339,12 +339,12 @@ public class IntegrationTestsStartup
             {
                 options.BigQueryClient = bigQueryClientMock.Object;
                 options.DatasetId = DatasetId;
-                options.Environment = Environment;
-                options.Namespace = Namespace;
-                options.TableId = TableId;
             })
             .AddAspNetCoreIntegration(options =>
             {
+                options.Environment = Environment;
+                options.Namespace = Namespace;
+                options.TableId = TableId;
                 options.GetUserIdFromRequest = ctx => ctx.Request.Headers["X-UserId"];
                 options.RequestFilter = ctx => !ctx.Request.Path.StartsWithSegments("/not-in-filter");
             });

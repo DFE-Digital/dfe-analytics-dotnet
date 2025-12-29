@@ -1,8 +1,39 @@
 <Project>
   <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>12.0</LangVersion>
     <TreatWarningsAsErrors Condition="'$(Configuration)' == 'Release'">true</TreatWarningsAsErrors>
     <Nullable>enable</Nullable>
     <RepoRoot>$([MSBuild]::EnsureTrailingSlash('$(MSBuildThisFileDirectory)'))</RepoRoot>
+    <PackageOutputPath>$([MSBuild]::NormalizeDirectory('$(RepoRoot)', 'packages'))</PackageOutputPath>
+
+    <IsShipping>true</IsShipping>
+    <IsShipping Condition="$(MSBuildProjectName.EndsWith('Tests'))">false</IsShipping>
   </PropertyGroup>
+
+  <PropertyGroup Condition="'$(IsShipping)' == 'true'">
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/DFE-Digital/dfe-analytics-dotnet</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/DFE-Digital/dfe-analytics-dotnet</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <MinVerTagPrefix>v</MinVerTagPrefix>
+    <MinVerMinimumMajorMinor>0.4</MinVerMinimumMajorMinor>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <AnalysisMode>All</AnalysisMode>
+    <NoWarn>$(NoWarn);CA1716;CA1852;CA1848;CA1812</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsShipping)' == 'true'">
+    <None Include="$(RepoRoot)README.md" Pack="true" PackagePath="" />
+
+    <PackageReference Include="MinVer" Version="4.2.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
 </Project>

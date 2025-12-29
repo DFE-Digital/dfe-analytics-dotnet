@@ -3,7 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Google.Cloud.BigQuery.V2;
 
-namespace Dfe.Analytics;
+namespace Dfe.Analytics.Events;
 
 /// <summary>
 /// Represents a DfE Analytics event.
@@ -198,7 +198,7 @@ public class Event
                 {
                     { "key", qp.Key },
                     { "value", qp.Value }
-                })?.ToArray() ?? []
+                }).ToArray() ?? []
             },
             { "response_content_type", ResponseContentType },
             { "response_status", ResponseStatus },

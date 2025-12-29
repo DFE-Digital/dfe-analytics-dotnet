@@ -1,3 +1,4 @@
+using Dfe.Analytics.Events;
 using Microsoft.AspNetCore.Http;
 
 namespace Dfe.Analytics.AspNetCore;
