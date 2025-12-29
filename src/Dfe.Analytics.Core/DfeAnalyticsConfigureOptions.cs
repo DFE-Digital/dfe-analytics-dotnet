@@ -12,25 +12,22 @@ internal class DfeAnalyticsConfigureOptions(IConfiguration configuration) : ICon
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        var section = configuration.GetSection(Constants.ConfigurationSectionName);
+        var configurationSection = configuration.GetSection(Constants.ConfigurationSectionName);
 
-        section.AssignConfigurationValueIfNotEmpty("DatasetId", v => options.DatasetId = v);
-        section.AssignConfigurationValueIfNotEmpty("Environment", v => options.Environment = v);
-        section.AssignConfigurationValueIfNotEmpty("Namespace", v => options.Namespace = v);
-        section.AssignConfigurationValueIfNotEmpty("TableId", v => options.TableId = v);
-        section.AssignConfigurationValueIfNotEmpty("ProjectId", v => options.ProjectId = v);
-        section.AssignConfigurationValueIfNotEmpty("Audience", v =>
+        configurationSection.AssignConfigurationValueIfNotEmpty("DatasetId", v => options.DatasetId = v);
+        configurationSection.AssignConfigurationValueIfNotEmpty("ProjectId", v => options.ProjectId = v);
+        configurationSection.AssignConfigurationValueIfNotEmpty("Audience", v =>
         {
             options.FederatedAksAuthentication ??= new();
             options.FederatedAksAuthentication.Audience = v;
         });
-        section.AssignConfigurationValueIfNotEmpty("GenerateAccessTokenUrl", v =>
+        configurationSection.AssignConfigurationValueIfNotEmpty("GenerateAccessTokenUrl", v =>
         {
             options.FederatedAksAuthentication ??= new();
             options.FederatedAksAuthentication.ServiceAccountImpersonationUrl = v;
         });
 
-        var credentialsJson = section["CredentialsJson"];
+        var credentialsJson = configurationSection["CredentialsJson"];
         if (!string.IsNullOrEmpty(credentialsJson))
         {
             using var credentialsJsonDoc = JsonDocument.Parse(credentialsJson);

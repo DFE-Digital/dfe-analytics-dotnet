@@ -1,3 +1,5 @@
+using Dfe.Analytics.Events;
+
 namespace Dfe.Analytics.AspNetCore;
 
 /// <summary>

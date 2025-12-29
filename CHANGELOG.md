@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+Splits library into separate `Dfe.Analytics.Core` and `Dfe.Analytics.AspNetCore` packages.
+
 Overhauls authentication to use new extensibility points in the Google SDK and simplify setup by auto-detecting authentication mechanism to use.
 
 Removes the option to pseudonymize the user ID.
