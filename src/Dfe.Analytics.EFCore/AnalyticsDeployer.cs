@@ -2,18 +2,28 @@ using System.Data;
 using System.Diagnostics;
 using Dfe.Analytics.EFCore.AirbyteApi;
 using Dfe.Analytics.EFCore.Configuration;
+using Google.Apis.Bigquery.v2.Data;
+using Google.Cloud.BigQuery.V2;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Npgsql;
 
 namespace Dfe.Analytics.EFCore;
 
-public class AnalyticsDeployer(AnalyticsConfigurationProvider configurationProvider, AirbyteApiClient airbyteApiClient)
+public class AnalyticsDeployer(
+    AnalyticsConfigurationProvider configurationProvider,
+    AirbyteApiClient airbyteApiClient,
+    IOptions<DfeAnalyticsOptions> optionsAccessor)
 {
     private const string PublicationName = "airbyte_publication";
 
     private static readonly string[] _airbyteFieldNames = ["_ab_cdc_lsn", "_ab_cdc_deleted_at", "_ab_cdc_updated_at"];
 
-    public async Task DeployAsync(DbContext dbContext, string airbyteConnectionId, CancellationToken cancellationToken = default)
+    public async Task DeployAsync(
+        DbContext dbContext,
+        string airbyteConnectionId,
+        string piiPolicyTagName,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(dbContext);
         ArgumentNullException.ThrowIfNull(airbyteConnectionId);
@@ -28,6 +38,11 @@ public class AnalyticsDeployer(AnalyticsConfigurationProvider configurationProvi
         await ConfigurePublicationAsync(
             configuration,
             (NpgsqlConnection)dbContext.Database.GetDbConnection(),
+            cancellationToken);
+
+        await ApplyBigQueryPolicyTagsAsync(
+            configuration,
+            piiPolicyTagName,
             cancellationToken);
 
         await SetAirbyteConfigurationAsync(
@@ -133,5 +148,49 @@ public class AnalyticsDeployer(AnalyticsConfigurationProvider configurationProvi
         };
 
         await airbyteApiClient.UpdateConnectionDetailsAsync(connectionId, updateRequest, cancellationToken);
+    }
+
+    private async Task ApplyBigQueryPolicyTagsAsync(
+        DatabaseSyncConfiguration configuration,
+        string piiPolicyTagName,
+        CancellationToken cancellationToken = default)
+    {
+        var bigQueryClient = optionsAccessor.Value.BigQueryClient ?? throw new InvalidOperationException("BigQuery client is not configured.");
+        var projectId = optionsAccessor.Value.ProjectId ?? throw new InvalidOperationException("BigQuery project ID is not configured.");
+        var datasetId = optionsAccessor.Value.DatasetId ?? throw new InvalidOperationException("BigQuery dataset ID is not configured.");
+
+        foreach (var table in configuration.Tables)
+        {
+            var tableId = table.Name;
+            var bqTable = await bigQueryClient.GetTableAsync(projectId, datasetId, table.Name, cancellationToken: cancellationToken);
+
+            var schema = bqTable.Schema;
+
+            foreach (var column in table.Columns)
+            {
+                var bqField = schema.Fields.SingleOrDefault(f => f.Name == column.Name);
+
+                if (bqField is null)
+                {
+                    throw new InvalidOperationException(
+                        $"Column '{column.Name}' not found in BigQuery table '{tableId}'.");
+                }
+
+                bqField.PolicyTags ??= new();
+                bqField.PolicyTags.Names = new List<string>();
+
+                if (column.IsPii)
+                {
+                    bqField.PolicyTags.Names.Add(piiPolicyTagName);
+                }
+            }
+
+            var tableUpdate = new Table
+            {
+                Schema = schema
+            };
+
+            await bigQueryClient.PatchTableAsync(projectId, datasetId, tableId, tableUpdate, cancellationToken: cancellationToken);
+        }
     }
 }
