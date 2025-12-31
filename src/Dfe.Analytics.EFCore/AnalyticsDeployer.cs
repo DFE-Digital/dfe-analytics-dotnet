@@ -20,7 +20,7 @@ public class AnalyticsDeployer(
     public async Task DeployAsync(
         DbContext dbContext,
         string airbyteConnectionId,
-        string piiPolicyTagName,
+        string hiddenPolicyTagName,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(dbContext);
@@ -40,7 +40,7 @@ public class AnalyticsDeployer(
 
         await ApplyBigQueryPolicyTagsAsync(
             configuration,
-            piiPolicyTagName,
+            hiddenPolicyTagName,
             cancellationToken);
 
         await SetAirbyteConfigurationAsync(
@@ -144,7 +144,7 @@ public class AnalyticsDeployer(
 
     private async Task ApplyBigQueryPolicyTagsAsync(
         DatabaseSyncConfiguration configuration,
-        string piiPolicyTagName,
+        string hiddenPolicyTagName,
         CancellationToken cancellationToken = default)
     {
         var bigQueryClient = optionsAccessor.Value.BigQueryClient ?? throw new InvalidOperationException("BigQuery client is not configured.");
@@ -172,7 +172,7 @@ public class AnalyticsDeployer(
 
                 if (column.IsPii)
                 {
-                    bqField.PolicyTags.Names.Add(piiPolicyTagName);
+                    bqField.PolicyTags.Names.Add(hiddenPolicyTagName);
                 }
             }
 
