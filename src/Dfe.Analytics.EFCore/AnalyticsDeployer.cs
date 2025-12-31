@@ -2,8 +2,6 @@ using System.Data;
 using System.Diagnostics;
 using Dfe.Analytics.EFCore.AirbyteApi;
 using Dfe.Analytics.EFCore.Configuration;
-using Google.Apis.Bigquery.v2.Data;
-using Google.Cloud.BigQuery.V2;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Npgsql;
@@ -58,24 +56,18 @@ public class AnalyticsDeployer(
     {
         ArgumentNullException.ThrowIfNull(connection);
 
-        var syncedTableNames = configuration.Tables.Select(t => t.Name).ToArray();
-        if (syncedTableNames.Length == 0)
+        if (configuration.Tables.Count == 0)
         {
             throw new InvalidOperationException("No tables are configured for synchronization.");
         }
 
-        var updatePublicationSql =
-            $"""
-             ALTER PUBLICATION {PublicationName}
-             SET TABLE {string.Join(", ", syncedTableNames.Select(n => $"\"{n}\""))};
-             """;
+        var publicationSpec = "TABLE " +
+            string.Join(
+                ", ",
+                configuration.Tables.Select(t => $"\"{t.Name}\" ({string.Join(", ", t.Columns.Select(c => $"\"{c.Name}\""))})"));
 
-        var createPublicationSql =
-            $"""
-             CREATE PUBLICATION {PublicationName}
-             FOR TABLE {string.Join(", ", syncedTableNames.Select(n => $"\"{n}\""))};
-             """;
-
+        var updatePublicationSql = $"ALTER PUBLICATION {PublicationName} SET {publicationSpec};";
+        var createPublicationSql = $"CREATE PUBLICATION {PublicationName} FOR {publicationSpec}";
         var dropPublicationSql = $"DROP PUBLICATION {PublicationName};";
 
         var startedOpen = connection.State is ConnectionState.Open;
@@ -162,8 +154,7 @@ public class AnalyticsDeployer(
         foreach (var table in configuration.Tables)
         {
             var tableId = table.Name;
-            var bqTable = await bigQueryClient.GetTableAsync(projectId, datasetId, table.Name, cancellationToken: cancellationToken);
-
+            var bqTable = await bigQueryClient.GetTableAsync(projectId, datasetId, tableId, cancellationToken: cancellationToken);
             var schema = bqTable.Schema;
 
             foreach (var column in table.Columns)
@@ -185,12 +176,7 @@ public class AnalyticsDeployer(
                 }
             }
 
-            var tableUpdate = new Table
-            {
-                Schema = schema
-            };
-
-            await bigQueryClient.PatchTableAsync(projectId, datasetId, tableId, tableUpdate, cancellationToken: cancellationToken);
+            await bigQueryClient.PatchTableAsync(projectId, datasetId, tableId, bqTable.Resource, cancellationToken: cancellationToken);
         }
     }
 }
