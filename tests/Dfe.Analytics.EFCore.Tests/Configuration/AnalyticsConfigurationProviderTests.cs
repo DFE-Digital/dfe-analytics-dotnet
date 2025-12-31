@@ -24,9 +24,22 @@ public class AnalyticsConfigurationProviderTests
                 Assert.Equal("TestEntity", table.Name);
                 Assert.Equal(["TestEntityId"], table.PrimaryKey.ColumnNames);
                 Assert.Collection(
-                    table.Columns,
-                    column => Assert.Equal("TestEntityId", column.Name),
-                    column => Assert.Equal("Name", column.Name)
+                    table.Columns.OrderBy(c => c.Name),
+                    column =>
+                    {
+                        Assert.Equal("DateOfBirth", column.Name);
+                        Assert.True(column.IsPii);
+                    },
+                    column =>
+                    {
+                        Assert.Equal("Name", column.Name);
+                        Assert.False(column.IsPii);
+                    },
+                    column =>
+                    {
+                        Assert.Equal("TestEntityId", column.Name);
+                        Assert.False(column.IsPii);
+                    }
                 );
             });
     }
@@ -41,9 +54,10 @@ public class AnalyticsConfigurationProviderTests
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             var testEntityConfiguration = modelBuilder.Entity<TestEntity>();
-            testEntityConfiguration.HasAnalyticsSync();
+            testEntityConfiguration.HasAnalyticsSync(columnsArePii: false);
             testEntityConfiguration.HasKey(t => t.TestEntityId);
             testEntityConfiguration.Property(t => t.Name);
+            testEntityConfiguration.Property(t => t.DateOfBirth).HasAnalyticsSync(isPii: true);
             testEntityConfiguration.Ignore(t => t.Ignored);
         }
     }
@@ -53,5 +67,6 @@ public class AnalyticsConfigurationProviderTests
         public int TestEntityId { get; set; }
         public string? Name { get; set; }
         public string? Ignored { get; set; }
+        public DateOnly DateOfBirth { get; set; }
     }
 }
