@@ -8,7 +8,7 @@ namespace Dfe.Analytics;
 /// Extension methods for configuring DfE Analytics.
 /// </summary>
 #pragma warning disable CA1724
-public static class Extensions
+public static class DfeAnalyticsExtensions
 #pragma warning disable CA1724
 {
     /// <summary>
