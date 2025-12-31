@@ -27,10 +27,9 @@ internal class DfeAnalyticsConfigureOptions(IConfiguration configuration) : ICon
             options.FederatedAksAuthentication.ServiceAccountImpersonationUrl = v;
         });
 
-        var credentialsJson = configurationSection["CredentialsJson"];
-        if (!string.IsNullOrEmpty(credentialsJson))
+        if (!string.IsNullOrEmpty(options.CredentialsJson))
         {
-            using var credentialsJsonDoc = JsonDocument.Parse(credentialsJson);
+            using var credentialsJsonDoc = JsonDocument.Parse(options.CredentialsJson);
             AssignConfigurationFromCredentialsJson(options, credentialsJsonDoc);
         }
     }

@@ -28,4 +28,9 @@ public class DfeAnalyticsOptions
     /// The project ID.
     /// </summary>
     public string? ProjectId { get; set; }
+
+    /// <summary>
+    /// The JSON credentials for authenticating with Google Cloud.
+    /// </summary>
+    public string? CredentialsJson { get; set; }
 }
