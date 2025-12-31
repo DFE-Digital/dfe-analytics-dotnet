@@ -24,14 +24,11 @@ jobs:
       with:
         global-json-file: global.json
 
-    - name: Install tools
-      run: dotnet tool restore
-
     - name: Restore
       run: dotnet restore
 
     - name: Format
-      run: dotnet dotnet-format --verify-no-changes
+      run: dotnet format --verify-no-changes
 
     - name: Build
       run: dotnet build --configuration Release --no-restore
