@@ -1,6 +1,9 @@
-﻿using System.CommandLine;
+using Dfe.Analytics.Cli;
 
-var rootCommand = new RootCommand("Tools for DfE Analytics.");
+var rootCommand = new RootCommand("Tools for DfE Analytics.")
+{
+    Commands.GetConfigureDbCommand()
+};
 
 var parseResult = rootCommand.Parse(args);
 return await parseResult.InvokeAsync();
