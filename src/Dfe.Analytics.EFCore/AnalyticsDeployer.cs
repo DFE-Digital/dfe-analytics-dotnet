@@ -25,6 +25,7 @@ public class AnalyticsDeployer(
     {
         ArgumentNullException.ThrowIfNull(dbContext);
         ArgumentNullException.ThrowIfNull(airbyteConnectionId);
+        ArgumentNullException.ThrowIfNull(hiddenPolicyTagName);
 
         if (dbContext.Database.CurrentTransaction is not null)
         {
