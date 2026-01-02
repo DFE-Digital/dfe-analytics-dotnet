@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
     <RootNamespace>Dfe.Analytics</RootNamespace>
     <Description>Core types for DfE Analytics.</Description>
   </PropertyGroup>
