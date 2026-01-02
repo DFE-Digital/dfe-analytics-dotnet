@@ -34,5 +34,5 @@
   <ItemGroup>
     <Using Include="System.CommandLine" />
   </ItemGroup>
-
+  
 </Project>
