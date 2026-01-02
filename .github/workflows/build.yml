@@ -42,10 +42,7 @@ jobs:
         dotnet test tests/Dfe.Analytics.EFCore.Tests/ --configuration Release --no-build
 
     - name: Package
-      run: |
-        dotnet pack src/Dfe.Analytics.Core/ --configuration Release --no-build
-        dotnet pack src/Dfe.Analytics.AspNetCore/ --configuration Release --no-build
-        dotnet pack src/Dfe.Analytics.EFCore/ --configuration Release --no-build
+      run: dotnet pack --configuration Release --no-build
 
     - name: Publish package artifact
       uses: actions/upload-artifact@v6
