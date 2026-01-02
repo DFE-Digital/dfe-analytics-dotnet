@@ -8,27 +8,33 @@
     <RepoRoot>$([MSBuild]::EnsureTrailingSlash('$(MSBuildThisFileDirectory)'))</RepoRoot>
     <PackageOutputPath>$([MSBuild]::NormalizeDirectory('$(RepoRoot)', 'packages'))</PackageOutputPath>
 
-    <IsShipping>true</IsShipping>
-    <IsShipping Condition="$(MSBuildProjectName.EndsWith('Tests'))">false</IsShipping>
+    <IsTestProject Condition="'$(IsTestProject)' == '' and $(MSBuildProjectName.EndsWith('Tests'))">true</IsTestProject>
+
+    <IsPackage Condition="'$(MSBuildProjectName)' == 'Dfe.Analytics.Core'">true</IsPackage>
+    <IsPackage Condition="'$(MSBuildProjectName)' == 'Dfe.Analytics.AspNetCore'">true</IsPackage>
+    <IsPackage Condition="'$(MSBuildProjectName)' == 'Dfe.Analytics.EFCore'">true</IsPackage>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(IsShipping)' == 'true'">
+  <PropertyGroup Condition="'$(IsTestProject)' != 'true'">
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <MinVerTagPrefix>v</MinVerTagPrefix>
+    <MinVerMinimumMajorMinor>0.4</MinVerMinimumMajorMinor>
+    <AnalysisMode>All</AnalysisMode>
+    <NoWarn>$(NoWarn);CA1716;CA1852;CA1848;CA1812</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(IsPackage)' == 'true'">
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageProjectUrl>https://github.com/DFE-Digital/dfe-analytics-dotnet</PackageProjectUrl>
     <RepositoryUrl>https://github.com/DFE-Digital/dfe-analytics-dotnet</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <MinVerTagPrefix>v</MinVerTagPrefix>
-    <MinVerMinimumMajorMinor>0.4</MinVerMinimumMajorMinor>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
-    <AnalysisMode>All</AnalysisMode>
-    <NoWarn>$(NoWarn);CA1716;CA1852;CA1848;CA1812</NoWarn>
   </PropertyGroup>
 
-  <ItemGroup Condition="'$(IsShipping)' == 'true'">
+  <ItemGroup Condition="'$(IsPackage)' == 'true'">
     <None Include="$(RepoRoot)README.md" Pack="true" PackagePath="" />
 
     <PackageReference Include="MinVer" Version="4.2.0">
