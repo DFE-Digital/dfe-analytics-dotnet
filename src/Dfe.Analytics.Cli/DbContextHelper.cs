@@ -6,16 +6,8 @@ namespace Dfe.Analytics.Cli;
 
 internal static class DbContextHelper
 {
-    public static DbContext CreateDbContext(
-        string dbContextAssemblyPath,
-        string dbContextTypeName,
-        string connectionString)
+    public static DbContext CreateDbContext(string dbContextAssemblyPath, string dbContextTypeName)
     {
-        if (!File.Exists(dbContextAssemblyPath))
-        {
-            throw new FileNotFoundException($"The specified DbContext assembly could not be found: '{dbContextAssemblyPath}'.");
-        }
-
         var appBasePath = Path.GetDirectoryName(dbContextAssemblyPath)!;
         var executingDllDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
 
@@ -30,7 +22,6 @@ internal static class DbContextHelper
                 throw new InvalidOperationException($"The specified DbContext type '{dbContextTypeName}' could not be found in assembly '{dbContextAssembly.FullName}'.");
 
             var dbContext = DbContextActivator.CreateInstance(dbContextType);
-            dbContext.Database.SetConnectionString(connectionString);
             return dbContext;
         }
         finally
