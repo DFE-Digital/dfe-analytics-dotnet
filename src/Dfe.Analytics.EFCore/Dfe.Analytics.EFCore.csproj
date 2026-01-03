@@ -20,14 +20,14 @@
   <ItemGroup>
     <ProjectReference Include="..\Dfe.Analytics.Core\Dfe.Analytics.Core.csproj" />
   </ItemGroup>
-  
+
   <ItemGroup>
     <None Include="Package\build\Dfe.Analytics.EFCore.targets" Pack="true" PackagePath="build" />
   </ItemGroup>
 
   <Target Name="PackCliDlls" BeforeTargets="GenerateNuspec">
     <ItemGroup>
-      <_PackageFiles Include="$(RepoRoot)\src\Dfe.Analytics.Cli\bin\Release\**\*.dll">
+      <_PackageFiles Include="$(RepoRoot)\src\Dfe.Analytics.Cli\bin\Release\**\*">
         <PackagePath>tools\%(RecursiveDir)</PackagePath>
         <Visible>false</Visible>
         <BuildAction>Content</BuildAction>
