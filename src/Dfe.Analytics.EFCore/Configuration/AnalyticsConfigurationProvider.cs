@@ -61,7 +61,7 @@ public class AnalyticsConfigurationProvider
             }
         }
 
-        return new TablePrimaryKeySyncInfo { ColumnNames = primaryKey.Properties.Select(p => p.Name).ToArray() };
+        return new TablePrimaryKeySyncInfo { ColumnNames = primaryKey.Properties.Select(p => p.GetColumnName()).ToArray() };
     }
 
 #pragma warning disable CA1859
