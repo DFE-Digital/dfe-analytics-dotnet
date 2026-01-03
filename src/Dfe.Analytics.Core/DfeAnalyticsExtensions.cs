@@ -37,7 +37,7 @@ public static class DfeAnalyticsExtensions
         ArgumentNullException.ThrowIfNull(setupAction);
 
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DfeAnalyticsOptions>, DfeAnalyticsConfigureOptions>());
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IPostConfigureOptions<DfeAnalyticsOptions>, DfeAnalyticsPostConfigureOptions>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IPostConfigureOptions<DfeAnalyticsOptions>, DfeAnalyticsConfigureOptions>());
         services.TryAddSingleton(_ => TimeProvider.System);
         services.Configure(setupAction);
 
