@@ -57,19 +57,11 @@ public class AnalyticsDeployer(
     {
         ArgumentNullException.ThrowIfNull(connection);
 
-        if (configuration.Tables.Count == 0)
-        {
-            throw new InvalidOperationException("No tables are configured for synchronization.");
-        }
+        // It's tempting to limit the publication to just the tables and columns in the current configuration
+        // but this would cause race conditions when adding new tables or columns that have data
+        // since this method isn't called until after migrations have been applied so any data added won't be captured.
 
-        var publicationSpec = "TABLE " +
-            string.Join(
-                ", ",
-                configuration.Tables.Select(t => $"\"{t.Name}\" ({string.Join(", ", t.Columns.Select(c => $"\"{c.Name}\""))})"));
-
-        var updatePublicationSql = $"ALTER PUBLICATION {PublicationName} SET {publicationSpec};";
-        var createPublicationSql = $"CREATE PUBLICATION {PublicationName} FOR {publicationSpec}";
-        var dropPublicationSql = $"DROP PUBLICATION {PublicationName};";
+        var createPublicationSql = $"CREATE PUBLICATION {PublicationName} FOR ALL TABLES;";
 
         var startedOpen = connection.State is ConnectionState.Open;
         if (!startedOpen)
@@ -80,18 +72,10 @@ public class AnalyticsDeployer(
 
         try
         {
-            await ExecuteSqlAsync(updatePublicationSql);
-        }
-        catch (PostgresException ex) when (ex.SqlState is PostgresErrorCodes.ObjectNotInPrerequisiteState)
-        {
-            // Publication exists, but it's defined 'FOR ALL TABLES', so we need to drop and recreate it
-            await ExecuteSqlAsync(dropPublicationSql);
             await ExecuteSqlAsync(createPublicationSql);
         }
-        catch (PostgresException ex) when (ex.SqlState is PostgresErrorCodes.UndefinedObject)
+        catch (PostgresException ex) when (ex.SqlState is PostgresErrorCodes.DuplicateObject)
         {
-            // Publication does not exist, create it
-            await ExecuteSqlAsync(createPublicationSql);
         }
         finally
         {
