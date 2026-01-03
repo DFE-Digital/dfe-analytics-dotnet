@@ -1,18 +1,15 @@
 using Dfe.Analytics.EFCore;
+using Dfe.Analytics.EFCore.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfe.Analytics.Cli;
 
 internal static partial class Commands
 {
-    public static Command GetConfigureDbCommand()
+    public static Command GetConfigApplyCommand()
     {
-        // DB context options
-        var dbContextOption = new Option<string>("--context") { Required = true };
-        var dbContextAssemblyOption = new Option<string>("--context-assembly") { Required = true };
-
-        // DB connection options
-        var connectionStringOption = new Option<string>("--connection-string") { Required = true };
+        // Configuration options
+        var configurationPathOption = new Option<string>("--path") { Required = true };
 
         // BQ options
         var googleCredentialsOption = new Option<string>("--google-credentials") { Required = true };
@@ -26,11 +23,9 @@ internal static partial class Commands
         var airbyteClientSecretOption = new Option<string>("--airbyte-client-secret") { Required = true };
         var airbyteConnectionIdOption = new Option<string>("--airbyte-connection-id") { Required = true };
 
-        var command = new Command("configure-db", "Configures the database, Airbyte and BigQuery for analytics sync.")
+        var command = new Command("apply", "Configures Airbyte and BigQuery with the specified configuration.")
         {
-            dbContextOption,
-            dbContextAssemblyOption,
-            connectionStringOption,
+            configurationPathOption,
             googleCredentialsOption,
             projectIdOption,
             datasetIdOption,
@@ -60,17 +55,16 @@ internal static partial class Commands
                 .Services
                 .BuildServiceProvider();
 
-            var dbContext = DbContextHelper.CreateDbContext(
-                parseResult.GetRequiredValue(dbContextAssemblyOption),
-                parseResult.GetRequiredValue(dbContextOption),
-                parseResult.GetRequiredValue(connectionStringOption));
+            using var scope = services.CreateScope();
+
+            var configurationPath = parseResult.GetRequiredValue(configurationPathOption);
+            var configuration = DatabaseSyncConfiguration.ReadFromFile(configurationPath);
 
             var airbyteConnectionId = parseResult.GetRequiredValue(airbyteConnectionIdOption);
             var hiddenPolicyTagName = parseResult.GetRequiredValue(hiddenPolicyTagNameOption);
 
-            using var scope = services.CreateScope();
             var analyticsDeployer = scope.ServiceProvider.GetRequiredService<AnalyticsDeployer>();
-            await analyticsDeployer.DeployAsync(dbContext, airbyteConnectionId, hiddenPolicyTagName);
+            await analyticsDeployer.DeployAsync(configuration, airbyteConnectionId, hiddenPolicyTagName);
         });
 
         return command;

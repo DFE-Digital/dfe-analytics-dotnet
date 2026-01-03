@@ -1,8 +1,14 @@
 using Dfe.Analytics.Cli;
 
+var configCommand = new Command("config")
+{
+    Commands.GetConfigApplyCommand(),
+    Commands.GetConfigCreateCommand()
+};
+
 var rootCommand = new RootCommand("Tools for DfE Analytics.")
 {
-    Commands.GetConfigureDbCommand()
+    configCommand
 };
 
 var parseResult = rootCommand.Parse(args);

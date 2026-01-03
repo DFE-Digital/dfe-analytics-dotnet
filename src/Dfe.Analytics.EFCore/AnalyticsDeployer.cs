@@ -9,35 +9,20 @@ using Npgsql;
 namespace Dfe.Analytics.EFCore;
 
 public class AnalyticsDeployer(
-    AnalyticsConfigurationProvider configurationProvider,
     AirbyteApiClient airbyteApiClient,
     IOptions<DfeAnalyticsOptions> optionsAccessor)
 {
-    private const string PublicationName = "airbyte_publication";
-
     private static readonly string[] _airbyteFieldNames = ["_ab_cdc_lsn", "_ab_cdc_deleted_at", "_ab_cdc_updated_at"];
 
     public async Task DeployAsync(
-        DbContext dbContext,
+        DatabaseSyncConfiguration configuration,
         string airbyteConnectionId,
         string hiddenPolicyTagName,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(dbContext);
+        ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(airbyteConnectionId);
         ArgumentNullException.ThrowIfNull(hiddenPolicyTagName);
-
-        if (dbContext.Database.CurrentTransaction is not null)
-        {
-            throw new InvalidOperationException("Cannot deploy analytics configuration within an active database transaction.");
-        }
-
-        var configuration = configurationProvider.GetConfiguration(dbContext);
-
-        await ConfigurePublicationAsync(
-            configuration,
-            (NpgsqlConnection)dbContext.Database.GetDbConnection(),
-            cancellationToken);
 
         await ApplyBigQueryPolicyTagsAsync(
             configuration,
@@ -48,51 +33,6 @@ public class AnalyticsDeployer(
             configuration,
             airbyteConnectionId,
             cancellationToken);
-    }
-
-    private async Task ConfigurePublicationAsync(
-        DatabaseSyncConfiguration configuration,
-        NpgsqlConnection connection,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(connection);
-
-        // It's tempting to limit the publication to just the tables and columns in the current configuration
-        // but this would cause race conditions when adding new tables or columns that have data
-        // since this method isn't called until after migrations have been applied so any data added won't be captured.
-
-        var createPublicationSql = $"CREATE PUBLICATION {PublicationName} FOR ALL TABLES;";
-
-        var startedOpen = connection.State is ConnectionState.Open;
-        if (!startedOpen)
-        {
-            Debug.Assert(connection.State is ConnectionState.Closed);
-            await connection.OpenAsync(cancellationToken);
-        }
-
-        try
-        {
-            await ExecuteSqlAsync(createPublicationSql);
-        }
-        catch (PostgresException ex) when (ex.SqlState is PostgresErrorCodes.DuplicateObject)
-        {
-        }
-        finally
-        {
-            if (!startedOpen)
-            {
-                await connection.CloseAsync();
-            }
-        }
-
-        async Task ExecuteSqlAsync(string commandText)
-        {
-            await using var cmd = connection.CreateCommand();
-#pragma warning disable CA2100
-            cmd.CommandText = commandText;
-#pragma warning restore CA2100
-            await cmd.ExecuteNonQueryAsync(cancellationToken);
-        }
     }
 
     private async Task SetAirbyteConfigurationAsync(
