@@ -1,8 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
     <Description>Entity Framework Core integration for DfE Analytics.</Description>
+    <NoWarn>$(NoWarn);NU1903</NoWarn>
     <!-- temp -->
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
   </PropertyGroup>
@@ -12,9 +13,34 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
+  </ItemGroup>
+  
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.0">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.0" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.0" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -22,17 +48,17 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="Package\build\Dfe.Analytics.EFCore.targets" Pack="true" PackagePath="build" />
+    <Content Include="Package\**\*" Pack="true" PackagePath="$(RecursiveDir)" />
   </ItemGroup>
-
-  <Target Name="PackCliDlls" BeforeTargets="GenerateNuspec">
+  
+  <Target Name="CopyCliToPackage" BeforeTargets="Build">
     <ItemGroup>
-      <_PackageFiles Include="$(RepoRoot)\src\Dfe.Analytics.Cli\bin\Release\**\*">
-        <PackagePath>tools\%(RecursiveDir)</PackagePath>
-        <Visible>false</Visible>
-        <BuildAction>Content</BuildAction>
-      </_PackageFiles>
+      <_TargetFramework Include="net8.0;net9.0;net10.0" />
     </ItemGroup>
+    
+    <MSBuild Projects="..\Dfe.Analytics.EFCore.Cli\Dfe.Analytics.EFCore.Cli.csproj"
+             Targets="Publish"
+             Properties="Configuration=$(Configuration);TargetFramework=%(_TargetFramework.Identity);PublishDir=$(MSBuildThisFileDirectory)Package\tools\cli\%(_TargetFramework.Identity)"/>
   </Target>
 
 </Project>

@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.CommandLine" Version="2.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Dfe.Analytics.EFCore\Operations\**\*Options*.cs"
+             Link="Operations\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Using Include="Dfe.Analytics.EFCore.Operations" />
+  </ItemGroup>
+
+</Project>

@@ -15,7 +15,6 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(IsTestProject)' != 'true'">
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <MinVerTagPrefix>v</MinVerTagPrefix>
     <MinVerMinimumMajorMinor>0.4</MinVerMinimumMajorMinor>
     <AnalysisMode>All</AnalysisMode>
@@ -23,6 +22,7 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(IsPackage)' == 'true'">
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageProjectUrl>https://github.com/DFE-Digital/dfe-analytics-dotnet</PackageProjectUrl>
