@@ -1,10 +1,6 @@
-using System.Data;
-using System.Diagnostics;
 using Dfe.Analytics.EFCore.AirbyteApi;
 using Dfe.Analytics.EFCore.Configuration;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using Npgsql;
 
 namespace Dfe.Analytics.EFCore;
 
