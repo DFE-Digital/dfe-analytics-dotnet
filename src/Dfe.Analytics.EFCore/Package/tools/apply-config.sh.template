@@ -1,0 +1,6 @@
+#!/bin/sh
+
+cd "$(dirname "$0")"
+cd ..
+
+dotnet dfe-analytics/cli/Dfe.Analytics.EFCore.Cli.dll config apply --path dfe-analytics/db-config.json --app-assembly-path "{APP_PATH}" "$@"

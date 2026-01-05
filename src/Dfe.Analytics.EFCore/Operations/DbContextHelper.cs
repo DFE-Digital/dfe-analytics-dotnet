@@ -2,14 +2,18 @@ using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
-namespace Dfe.Analytics.Cli;
+namespace Dfe.Analytics.EFCore.Operations;
 
 internal static class DbContextHelper
 {
     public static DbContext CreateDbContext(string dbContextAssemblyPath, string dbContextTypeName)
     {
+        if (!File.Exists(dbContextAssemblyPath))
+        {
+            throw new FileNotFoundException($"The specified DbContext assembly could not be found: '{dbContextAssemblyPath}'.");
+        }
+
         var appBasePath = Path.GetDirectoryName(dbContextAssemblyPath)!;
-        var executingDllDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
 
         AppDomain.CurrentDomain.AssemblyResolve += ResolveAssembly;
 
@@ -31,15 +35,7 @@ internal static class DbContextHelper
 
         Assembly? ResolveAssembly(object? sender, ResolveEventArgs args)
         {
-            // Ensure DLLs in both the executing assembly directory and the DbContext assembly directory can be resolved
-
             var assemblyName = new AssemblyName(args.Name);
-
-            var currentAssemblyBasePath = Path.Combine(executingDllDirectory, assemblyName.Name + ".dll");
-            if (File.Exists(currentAssemblyBasePath))
-            {
-                return Assembly.LoadFrom(currentAssemblyBasePath);
-            }
 
             var appAssemblyPath = Path.Combine(appBasePath, assemblyName.Name + ".dll");
             if (File.Exists(appAssemblyPath))

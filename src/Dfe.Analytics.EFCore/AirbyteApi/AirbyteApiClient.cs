@@ -1,5 +1,4 @@
 using System.Net.Http.Headers;
-using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -40,10 +39,15 @@ public class AirbyteApiClient(HttpClient httpClient)
             .AddHttpMessageHandler(sp => new AuthenticatingHandler(sp.GetRequiredService<IOptions<AirbyteApiOptions>>()));
     }
 
-    private static JsonContent CreateJsonContent(object value)
+#pragma warning disable CA1859
+    private static HttpContent CreateJsonContent(object value)
+#pragma warning restore CA1859
     {
         // Airbyte API is fussy about the Content-Type header; it must be exactly "application/json"
-        return JsonContent.Create(value, mediaType: new MediaTypeHeaderValue("application/json"), _serializerOptions);
+        return new StringContent(
+            JsonSerializer.Serialize(value, _serializerOptions),
+            encoding: null,
+            "application/json");
     }
 
     private class AuthenticatingHandler(IOptions<AirbyteApiOptions> optionsAccessor) : DelegatingHandler
@@ -79,8 +83,8 @@ public class AirbyteApiClient(HttpClient httpClient)
             var response = await base.SendAsync(request, cancellationToken);
             response.EnsureSuccessStatusCode();
 
-            var responseJson = await response.Content.ReadFromJsonAsync<JsonDocument>(cancellationToken);
-            var root = responseJson!.RootElement;
+            var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
+            var root = JsonDocument.Parse(responseJson).RootElement;
 
             return root.GetProperty("access_token").GetString() ?? throw new InvalidOperationException("Could not extract access token from response.");
         }
