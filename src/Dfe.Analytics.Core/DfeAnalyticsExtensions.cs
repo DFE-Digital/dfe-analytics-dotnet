@@ -8,7 +8,7 @@ namespace Dfe.Analytics;
 /// Extension methods for configuring DfE Analytics.
 /// </summary>
 #pragma warning disable CA1724
-public static class Extensions
+public static class DfeAnalyticsExtensions
 #pragma warning disable CA1724
 {
     /// <summary>
@@ -37,6 +37,7 @@ public static class Extensions
         ArgumentNullException.ThrowIfNull(setupAction);
 
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DfeAnalyticsOptions>, DfeAnalyticsConfigureOptions>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IPostConfigureOptions<DfeAnalyticsOptions>, DfeAnalyticsConfigureOptions>());
         services.TryAddSingleton(_ => TimeProvider.System);
         services.Configure(setupAction);
 
