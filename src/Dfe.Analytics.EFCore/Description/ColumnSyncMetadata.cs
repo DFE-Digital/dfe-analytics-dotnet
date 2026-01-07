@@ -1,3 +1,3 @@
 namespace Dfe.Analytics.EFCore.Description;
 
-internal record ColumnSyncMetadata(bool SyncColumn, bool? IsPii);
+internal record ColumnSyncMetadata(bool Included, bool? Hidden);

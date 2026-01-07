@@ -20,7 +20,7 @@ public class AnalyticsConfigurationProvider
         {
             var tableSyncMetadata = entityType.FindAnnotation(AnnotationKeys.TableAnalyticsSyncMetadata)?.Value as TableSyncMetadata;
 
-            if (tableSyncMetadata?.SyncTable is not true)
+            if (tableSyncMetadata is null)
             {
                 continue;
             }
@@ -54,7 +54,7 @@ public class AnalyticsConfigurationProvider
         {
             var columnSyncMetadata = pkProperty.FindAnnotation(AnnotationKeys.ColumnAnalyticsSyncMetadata)?.Value as ColumnSyncMetadata;
 
-            if (columnSyncMetadata?.SyncColumn is false)
+            if (columnSyncMetadata?.Included is false)
             {
                 throw new InvalidOperationException(
                     $"Primary key column '{pkProperty.Name}' in entity '{entityType.Name}' cannot be excluded from analytics sync.");
@@ -74,15 +74,15 @@ public class AnalyticsConfigurationProvider
             var columnName = property.GetColumnName();
             var columnSyncMetadata = property.FindAnnotation(AnnotationKeys.ColumnAnalyticsSyncMetadata)?.Value as ColumnSyncMetadata;
 
-            if (columnSyncMetadata?.SyncColumn is true || tableSyncMetadata.SyncAllColumns)
+            if (columnSyncMetadata?.Included ?? tableSyncMetadata.DefaultColumnSettings.Included)
             {
-                var isPii = columnSyncMetadata?.IsPii ?? tableSyncMetadata.ColumnsArePii ??
-                    throw new InvalidOperationException($"Property '{property.Name}' in entity '{entityType.Name}' does not have a defined PII setting.");
+                var hidden = columnSyncMetadata?.Hidden ?? tableSyncMetadata.DefaultColumnSettings.Hidden ??
+                    throw new InvalidOperationException($"Property '{property.Name}' in entity '{entityType.Name}' does not 'hidden' flag set.");
 
                 columnSyncInfos.Add(new ColumnSyncInfo
                 {
                     Name = columnName,
-                    IsPii = isPii
+                    Hidden = hidden
                 });
             }
         }
