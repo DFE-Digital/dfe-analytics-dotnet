@@ -18,7 +18,7 @@
     <MinVerTagPrefix>v</MinVerTagPrefix>
     <MinVerMinimumMajorMinor>0.4</MinVerMinimumMajorMinor>
     <AnalysisMode>All</AnalysisMode>
-    <NoWarn>$(NoWarn);CA1716;CA1852;CA1848;CA1812</NoWarn>
+    <NoWarn>$(NoWarn);CA1716;CA1852;CA1848;CA1812;NU1903</NoWarn>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(IsPackage)' == 'true'">

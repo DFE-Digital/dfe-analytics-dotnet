@@ -46,21 +46,21 @@
     </PropertyGroup>
 
     <MSBuild Projects="$(MSBuildProjectFile)"
-             Targets="CreateDfeAnalyticsConfigurationFile"
+             Targets="_CreateDfeAnalyticsDirectory"
              Properties="DbContextAssemblyName=$(_DbContextAssemblyName);DbContextTypeName=$(_DbContextTypeName)"
              Condition="'$(_DbContextAssemblyName)' != '' And '$(_DbContextTypeName)' != ''" />
 
   </Target>
 
-  <Target Name="CreateDfeAnalyticsConfigurationFile">
+  <Target Name="_CreateDfeAnalyticsDirectory">
 
     <PropertyGroup>
       <_AppPath>$(AssemblyName).dll</_AppPath>
       <_ConfigFileName>db-config.json</_ConfigFileName>
-      <_CliPath>$(MSBuildThisFileDirectory)..\tools\cli\$(TargetFramework)\Dfe.Analytics.EFCore.Cli.dll</_CliPath>
+      <_CliPath>$(MSBuildThisFileDirectory)..\lib\$(TargetFramework)\Dfe.Analytics.EFCore.dll</_CliPath>
+      <_DepsFileName>$(AssemblyName).deps.json</_DepsFileName>
 
       <_CliArgs>config create</_CliArgs>
-      <_CliArgs>$(_CliArgs) --app-assembly-path $([MSBuild]::NormalizePath('$(PublishDir)$(_AppPath)'))</_CliArgs>
       <_CliArgs>$(_CliArgs) --path $(_AnalyticsDirName)/$(_ConfigFileName)</_CliArgs>
       <_CliArgs>$(_CliArgs) --dbcontext-assembly $(DbContextAssemblyName).dll</_CliArgs>
       <_CliArgs>$(_CliArgs) --dbcontext-name $(DbContextTypeName)</_CliArgs>
@@ -68,28 +68,35 @@
 
     <MakeDir Directories="$(PublishDir)/$(_AnalyticsDirName)" />
 
-    <Exec Command="dotnet $(_CliPath) $(_CliArgs)"
+    <Exec Command="dotnet exec --depsfile $(_DepsFileName) $(_CliPath) $(_CliArgs)"
           WorkingDirectory="$(PublishDir)"
           LogStandardErrorAsError="true" />
 
-    <WriteLinesToFile File="$(PublishDir)/$(_AnalyticsDirName)/apply-config.sh"
+    <PropertyGroup>
+      <_ApplyConfigScript>
+        <![CDATA[
+dotnet exec --depsfile $(_DepsFileName) Dfe.Analytics.EFCore.dll config apply --path $(_AnalyticsDirName)/$(_ConfigFileName) "$@"
+]]>
+      </_ApplyConfigScript>
+    </PropertyGroup>
+
+    <WriteLinesToFile File="$(PublishDir)$(_AnalyticsDirName)/apply-config.sh"
                       Overwrite="true"
-                      Lines="$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)..\tools\apply-config.sh.template')
-                                                .Replace('{APP_PATH}', '$(_AppPath)'))" />
+                      Lines="$(_ApplyConfigScript)" />
 
     <Delete Files="@(_MarkerFiles)" />
 
   </Target>
 
-  <Target Name="_CopyCliToPublishDir"
+  <Target Name="_CopyRuntimeConfigToPublishDir"
           AfterTargets="Publish">
 
-    <ItemGroup>
-      <_CliFiles Include="$(MSBuildThisFileDirectory)..\tools\cli\$(TargetFramework)\**\*" />
-    </ItemGroup>
+    <PropertyGroup>
+      <_RuntimeConfigFile>$(AssemblyName).runtimeconfig.json</_RuntimeConfigFile>
+    </PropertyGroup>
 
-    <Copy SourceFiles="@(_CliFiles)"
-          DestinationFolder="$(PublishDir)$(_AnalyticsDirName)/cli"
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)..\lib\$(TargetFramework)\Dfe.Analytics.EFCore.runtimeconfig.json"
+          DestinationFolder="$(PublishDir)"
           SkipUnchangedFiles="true" />
 
   </Target>
