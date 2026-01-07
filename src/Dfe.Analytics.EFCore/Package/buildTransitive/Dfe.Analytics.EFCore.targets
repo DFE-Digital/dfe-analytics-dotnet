@@ -1,60 +1,12 @@
 <Project>
 
-  <PropertyGroup>
-    <_MarkerFileNameSuffix>.dfe-analytics-efcore-marker</_MarkerFileNameSuffix>
-    <_AnalyticsDirName>dfe-analytics</_AnalyticsDirName>
-  </PropertyGroup>
-
-  <!-- Create a marker file if this project has DfeAnalyticsDbContextTypeName defined that contains the DfeAnalyticsDbContextTypeName. -->
-  <!-- The marker file is read by CreateDfeAnalyticsConfigurationFile after Publish so it knows what args to pass to the CLI command to create the config. -->
-  <Target Name="_CreateDfeAnalyticsMarker"
-          BeforeTargets="AssignTargetPaths"
-          Condition="'$(DfeAnalyticsDbContextTypeName)' != ''">
+  <Target Name="_CreateDfeAnalyticsDirectory"
+          AfterTargets="Publish"
+          Condition="'$(DfeAnalyticsDbContextType)' != '' And '$(IsPublishable)' == 'true'">
 
     <PropertyGroup>
-      <_MarkerFileName>$(AssemblyName)$(_MarkerFileNameSuffix)</_MarkerFileName>
-      <_MarkerFilePath>$(IntermediateOutputPath)$(AssemblyName)$(_MarkerFileNameSuffix)</_MarkerFilePath>
-    </PropertyGroup>
+      <_AnalyticsDirName>dfe-analytics</_AnalyticsDirName>
 
-    <ItemGroup>
-      <_MarkerFileLines Include="$(DfeAnalyticsDbContextTypeName)" />
-    </ItemGroup>
-
-    <WriteLinesToFile File="$(_MarkerFilePath)" Lines="@(_MarkerFileLines)" Overwrite="true" />
-
-    <ItemGroup>
-      <Content Include="$(_MarkerFilePath)" CopyToOutputDirectory="PreserveNewest" Link="$(_MarkerFileName)" />
-    </ItemGroup>
-
-  </Target>
-
-  <Target Name="_GetDfeAnalyticsDbContextAssembly"
-          AfterTargets="Publish">
-
-    <ItemGroup>
-      <_MarkerFiles Include="$(PublishDir)*$(_MarkerFileNameSuffix)" />
-    </ItemGroup>
-
-    <Error Text="Only one DbContext assembly for DfE Analytics can be provided."
-           Condition="@(_MarkerFiles->Count()) &gt; 1"
-           ContinueOnError="false" />
-
-    <PropertyGroup>
-      <_MarkerFilePath>%(_MarkerFiles.FullPath)</_MarkerFilePath>
-      <_DbContextAssemblyName>%(_MarkerFiles.Filename)</_DbContextAssemblyName>
-      <_DbContextTypeName Condition="'$(_DbContextAssemblyName)' != ''">$([System.IO.File]::ReadAllText('$(_MarkerFilePath)'))</_DbContextTypeName>
-    </PropertyGroup>
-
-    <MSBuild Projects="$(MSBuildProjectFile)"
-             Targets="_CreateDfeAnalyticsDirectory"
-             Properties="DbContextAssemblyName=$(_DbContextAssemblyName);DbContextTypeName=$(_DbContextTypeName)"
-             Condition="'$(_DbContextAssemblyName)' != '' And '$(_DbContextTypeName)' != ''" />
-
-  </Target>
-
-  <Target Name="_CreateDfeAnalyticsDirectory">
-
-    <PropertyGroup>
       <_AppPath>$(AssemblyName).dll</_AppPath>
       <_ConfigFileName>db-config.json</_ConfigFileName>
       <_CliPath>$(MSBuildThisFileDirectory)..\lib\$(TargetFramework)\Dfe.Analytics.EFCore.dll</_CliPath>
@@ -62,8 +14,7 @@
 
       <_CliArgs>config create</_CliArgs>
       <_CliArgs>$(_CliArgs) --path $(_AnalyticsDirName)/$(_ConfigFileName)</_CliArgs>
-      <_CliArgs>$(_CliArgs) --dbcontext-assembly $(DbContextAssemblyName).dll</_CliArgs>
-      <_CliArgs>$(_CliArgs) --dbcontext-name $(DbContextTypeName)</_CliArgs>
+      <_CliArgs>$(_CliArgs) --dbcontext "$(DfeAnalyticsDbContextType)"</_CliArgs>
     </PropertyGroup>
 
     <MakeDir Directories="$(PublishDir)/$(_AnalyticsDirName)" />
@@ -75,7 +26,10 @@
     <PropertyGroup>
       <_ApplyConfigScript>
         <![CDATA[
-dotnet exec --depsfile $(_DepsFileName) Dfe.Analytics.EFCore.dll config apply --path $(_AnalyticsDirName)/$(_ConfigFileName) "$@"
+#!/bin/sh
+
+cd "%24(dirname "$0")"
+dotnet exec --depsfile ../$(_DepsFileName) ../Dfe.Analytics.EFCore.dll config apply --path $(_ConfigFileName) "$@"
 ]]>
       </_ApplyConfigScript>
     </PropertyGroup>
@@ -83,8 +37,6 @@ dotnet exec --depsfile $(_DepsFileName) Dfe.Analytics.EFCore.dll config apply --
     <WriteLinesToFile File="$(PublishDir)$(_AnalyticsDirName)/apply-config.sh"
                       Overwrite="true"
                       Lines="$(_ApplyConfigScript)" />
-
-    <Delete Files="@(_MarkerFiles)" />
 
   </Target>
 
