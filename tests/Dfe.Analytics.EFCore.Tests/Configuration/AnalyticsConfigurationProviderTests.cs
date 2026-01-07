@@ -28,17 +28,17 @@ public class AnalyticsConfigurationProviderTests
                     column =>
                     {
                         Assert.Equal("DateOfBirth", column.Name);
-                        Assert.True(column.IsPii);
+                        Assert.True(column.Hidden);
                     },
                     column =>
                     {
                         Assert.Equal("Name", column.Name);
-                        Assert.False(column.IsPii);
+                        Assert.False(column.Hidden);
                     },
                     column =>
                     {
                         Assert.Equal("TestEntityId", column.Name);
-                        Assert.False(column.IsPii);
+                        Assert.False(column.Hidden);
                     }
                 );
             });
@@ -54,10 +54,10 @@ public class AnalyticsConfigurationProviderTests
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             var testEntityConfiguration = modelBuilder.Entity<TestEntity>();
-            testEntityConfiguration.HasAnalyticsSync(columnsArePii: false);
+            testEntityConfiguration.IncludeInAnalyticsSync(hidden: false);
             testEntityConfiguration.HasKey(t => t.TestEntityId);
             testEntityConfiguration.Property(t => t.Name);
-            testEntityConfiguration.Property(t => t.DateOfBirth).HasAnalyticsSync(isPii: true);
+            testEntityConfiguration.Property(t => t.DateOfBirth).ConfigureAnalyticsSync(hidden: true);
             testEntityConfiguration.Ignore(t => t.Ignored);
         }
     }

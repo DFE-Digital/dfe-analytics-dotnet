@@ -109,7 +109,7 @@ public class AnalyticsDeployer(
                 bqField.PolicyTags ??= new();
                 bqField.PolicyTags.Names = new List<string>();
 
-                if (column.IsPii)
+                if (column.Hidden)
                 {
                     bqField.PolicyTags.Names.Add(hiddenPolicyTagName);
                 }
