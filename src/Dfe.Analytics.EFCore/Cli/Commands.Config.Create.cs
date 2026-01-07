@@ -1,4 +1,5 @@
 using System.CommandLine;
+using Dfe.Analytics.EFCore.Configuration;
 
 namespace Dfe.Analytics.EFCore.Cli;
 
@@ -17,19 +18,20 @@ internal static partial class Commands
             dbContextAssemblyOption
         };
 
-        command.SetAction(async parseResult =>
+        command.SetAction(parseResult =>
         {
-            var appAssemblyPath = parseResult.GetRequiredValue<string>("--app-assembly-path");
+            var configurationFilePath = parseResult.GetRequiredValue(configurationPathOption);
+            var dbContextTypeName = parseResult.GetRequiredValue(dbContextNameOption);
+            var dbContextAssemblyPath = parseResult.GetRequiredValue(dbContextAssemblyOption);
 
-            var options = new CreateConfigurationFileOptions
-            {
-                ConfigurationFilePath = parseResult.GetRequiredValue(configurationPathOption),
-                DbContextTypeName = parseResult.GetRequiredValue(dbContextNameOption),
-                DbContextAssemblyPath = parseResult.GetRequiredValue(dbContextAssemblyOption)
-            };
+            using var dbContext = DbContextHelper.CreateDbContext(
+                dbContextAssemblyPath,
+                dbContextTypeName);
 
-            var invoker = new ReflectionOperationInvoker();
-            await invoker.InvokeAsync("CreateConfigurationFileAsync", options.Serialize(), appAssemblyPath);
+            var configurationProvider = new AnalyticsConfigurationProvider();
+            var configuration = configurationProvider.GetConfiguration(dbContext);
+
+            configuration.WriteToFile(configurationFilePath);
         });
 
         return command;

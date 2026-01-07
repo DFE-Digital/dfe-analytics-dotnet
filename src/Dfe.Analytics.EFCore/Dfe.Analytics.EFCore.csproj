@@ -2,8 +2,9 @@
 
   <PropertyGroup>
     <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <OutputType>Exe</OutputType>
     <Description>Entity Framework Core integration for DfE Analytics.</Description>
-    <NoWarn>$(NoWarn);NU1903</NoWarn>
+    <NoWarn>$(NoWarn);CA1515</NoWarn>
     <!-- temp -->
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
   </PropertyGroup>
@@ -14,8 +15,9 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
+    <PackageReference Include="System.CommandLine" Version="2.0.0" />
   </ItemGroup>
-  
+
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.0">
@@ -50,15 +52,5 @@
   <ItemGroup>
     <Content Include="Package\**\*" Pack="true" PackagePath="$(RecursiveDir)" />
   </ItemGroup>
-  
-  <Target Name="CopyCliToPackage" BeforeTargets="Build">
-    <ItemGroup>
-      <_TargetFramework Include="net8.0;net9.0;net10.0" />
-    </ItemGroup>
-    
-    <MSBuild Projects="..\Dfe.Analytics.EFCore.Cli\Dfe.Analytics.EFCore.Cli.csproj"
-             Targets="Publish"
-             Properties="Configuration=$(Configuration);TargetFramework=%(_TargetFramework.Identity);PublishDir=$(MSBuildThisFileDirectory)Package\tools\cli\%(_TargetFramework.Identity)"/>
-  </Target>
 
 </Project>
