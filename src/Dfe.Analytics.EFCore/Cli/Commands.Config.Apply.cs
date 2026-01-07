@@ -36,6 +36,9 @@ internal static partial class Commands
             airbyteConnectionIdOption
         };
 
+        // Ignore unmatched tokens to allow for extra arguments (e.g. from future versions of the Terraform module that invokes this command)
+        command.TreatUnmatchedTokensAsErrors = false;
+
         command.SetAction(async parseResult =>
         {
             var googleCredentialsJson = parseResult.GetRequiredValue(googleCredentialsOption);

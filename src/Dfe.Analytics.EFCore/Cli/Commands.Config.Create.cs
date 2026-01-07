@@ -8,25 +8,20 @@ internal static partial class Commands
     public static Command GetConfigCreateCommand()
     {
         var configurationPathOption = new Option<string>("--path") { Required = true };
-        var dbContextNameOption = new Option<string>("--dbcontext-name") { Required = true };
-        var dbContextAssemblyOption = new Option<string>("--dbcontext-assembly") { Required = true };
+        var dbContextOption = new Option<string>("--dbcontext") { Required = true };
 
         var command = new Command("create", "Creates a configuration file from an Entity Framework Core DbContext.")
         {
             configurationPathOption,
-            dbContextNameOption,
-            dbContextAssemblyOption
+            dbContextOption
         };
 
         command.SetAction(parseResult =>
         {
             var configurationFilePath = parseResult.GetRequiredValue(configurationPathOption);
-            var dbContextTypeName = parseResult.GetRequiredValue(dbContextNameOption);
-            var dbContextAssemblyPath = parseResult.GetRequiredValue(dbContextAssemblyOption);
+            var dbContextName = parseResult.GetRequiredValue(dbContextOption);
 
-            using var dbContext = DbContextHelper.CreateDbContext(
-                dbContextAssemblyPath,
-                dbContextTypeName);
+            using var dbContext = DbContextHelper.CreateDbContext(dbContextName);
 
             var configurationProvider = new AnalyticsConfigurationProvider();
             var configuration = configurationProvider.GetConfiguration(dbContext);
