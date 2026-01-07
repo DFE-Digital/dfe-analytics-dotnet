@@ -2,7 +2,7 @@ using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
-namespace Dfe.Analytics.EFCore.Operations;
+namespace Dfe.Analytics.EFCore.Cli;
 
 internal static class DbContextHelper
 {
@@ -37,10 +37,10 @@ internal static class DbContextHelper
         {
             var assemblyName = new AssemblyName(args.Name);
 
-            var appAssemblyPath = Path.Combine(appBasePath, assemblyName.Name + ".dll");
-            if (File.Exists(appAssemblyPath))
+            var assemblyPath = Path.Combine(appBasePath, assemblyName.Name + ".dll");
+            if (File.Exists(assemblyPath))
             {
-                return Assembly.LoadFrom(appAssemblyPath);
+                return Assembly.LoadFrom(assemblyPath);
             }
 
             return null;

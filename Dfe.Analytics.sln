@@ -27,8 +27,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dfe.Analytics.EFCore", "src
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dfe.Analytics.EFCore.Tests", "tests\Dfe.Analytics.EFCore.Tests\Dfe.Analytics.EFCore.Tests.csproj", "{56E202E5-7D4B-4D4E-97E0-A8961874BB3C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dfe.Analytics.EFCore.Cli", "src\Dfe.Analytics.EFCore.Cli\Dfe.Analytics.EFCore.Cli.csproj", "{6966D616-46A6-4C42-87B0-50385BD0B3DB}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -55,10 +53,6 @@ Global
 		{56E202E5-7D4B-4D4E-97E0-A8961874BB3C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{56E202E5-7D4B-4D4E-97E0-A8961874BB3C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{56E202E5-7D4B-4D4E-97E0-A8961874BB3C}.Release|Any CPU.Build.0 = Release|Any CPU
-		{6966D616-46A6-4C42-87B0-50385BD0B3DB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{6966D616-46A6-4C42-87B0-50385BD0B3DB}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{6966D616-46A6-4C42-87B0-50385BD0B3DB}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{6966D616-46A6-4C42-87B0-50385BD0B3DB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -69,7 +63,6 @@ Global
 		{E89CC59D-9F77-419E-BE4A-68CA9F59DC88} = {279CE08B-C967-478E-AAD2-218C3308AB3F}
 		{55934EC8-3AEE-4E9F-BBAA-6FB26CB8F701} = {279CE08B-C967-478E-AAD2-218C3308AB3F}
 		{56E202E5-7D4B-4D4E-97E0-A8961874BB3C} = {324AABEE-3901-49C5-BA3B-CF67C3ADBA7D}
-		{6966D616-46A6-4C42-87B0-50385BD0B3DB} = {279CE08B-C967-478E-AAD2-218C3308AB3F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {118BBBA5-C728-448A-9835-53E5DD47C4DD}
