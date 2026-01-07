@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Dfe.Analytics.EFCore.AirbyteApi;
 using Dfe.Analytics.EFCore.Configuration;
 using Microsoft.Extensions.Options;
@@ -14,26 +15,30 @@ public class AnalyticsDeployer(
         DatabaseSyncConfiguration configuration,
         string airbyteConnectionId,
         string hiddenPolicyTagName,
+        TextWriter? logger = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(airbyteConnectionId);
         ArgumentNullException.ThrowIfNull(hiddenPolicyTagName);
 
-        await ApplyBigQueryPolicyTagsAsync(
-            configuration,
-            hiddenPolicyTagName,
-            cancellationToken);
+        logger ??= Console.Out;
 
-        await SetAirbyteConfigurationAsync(
-            configuration,
-            airbyteConnectionId,
-            cancellationToken);
+        await WithProgressLoggingAsync(
+            () => UpdateBigQueryPolicyTagsAsync(configuration, hiddenPolicyTagName, logger, cancellationToken),
+            logger,
+            "Updating BigQuery policy tags");
+
+        await WithProgressLoggingAsync(
+            () => ApplyAirbyteConfigurationAsync(configuration, airbyteConnectionId, logger, cancellationToken),
+            logger,
+            "Applying Airbyte configuration");
     }
 
-    private async Task SetAirbyteConfigurationAsync(
+    private async Task ApplyAirbyteConfigurationAsync(
         DatabaseSyncConfiguration configuration,
         string connectionId,
+        TextWriter logger,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(connectionId);
@@ -63,9 +68,10 @@ public class AnalyticsDeployer(
         await airbyteApiClient.UpdateConnectionDetailsAsync(connectionId, updateRequest, cancellationToken);
     }
 
-    private async Task ApplyBigQueryPolicyTagsAsync(
+    private async Task UpdateBigQueryPolicyTagsAsync(
         DatabaseSyncConfiguration configuration,
         string hiddenPolicyTagName,
+        TextWriter logger,
         CancellationToken cancellationToken = default)
     {
         var bigQueryClient = optionsAccessor.Value.BigQueryClient ?? throw new InvalidOperationException("BigQuery client is not configured.");
@@ -74,9 +80,19 @@ public class AnalyticsDeployer(
 
         foreach (var table in configuration.Tables)
         {
+            await WithProgressLoggingAsync(
+                () => ProcessTableAsync(table),
+                logger,
+                $"  {table.Name}");
+        }
+
+        async Task<string?> ProcessTableAsync(TableSyncInfo table)
+        {
             var tableId = table.Name;
             var bqTable = await bigQueryClient.GetTableAsync(projectId, datasetId, tableId, cancellationToken: cancellationToken);
             var schema = bqTable.Schema;
+
+            var schemaChanged = false;
 
             foreach (var column in table.Columns)
             {
@@ -88,6 +104,8 @@ public class AnalyticsDeployer(
                         $"Column '{column.Name}' not found in BigQuery table '{tableId}'.");
                 }
 
+                var existingPolicyTagNames = new HashSet<string>(bqField.PolicyTags?.Names ?? []);
+
                 bqField.PolicyTags ??= new();
                 bqField.PolicyTags.Names = new List<string>();
 
@@ -95,9 +113,55 @@ public class AnalyticsDeployer(
                 {
                     bqField.PolicyTags.Names.Add(hiddenPolicyTagName);
                 }
+
+                var policyTagNamesChanged = !existingPolicyTagNames.SetEquals(bqField.PolicyTags.Names);
+                schemaChanged |= policyTagNamesChanged;
             }
 
-            await bigQueryClient.PatchTableAsync(projectId, datasetId, tableId, bqTable.Resource, cancellationToken: cancellationToken);
+            if (schemaChanged)
+            {
+                await bigQueryClient.PatchTableAsync(projectId, datasetId, tableId, bqTable.Resource, cancellationToken: cancellationToken);
+                return "[schema updated]";
+            }
+            else
+            {
+                return "[no changes required]";
+            }
         }
+    }
+
+    private static Task WithProgressLoggingAsync(Func<Task> action, TextWriter logger, string messagePrefix) =>
+        WithProgressLoggingAsync(
+            async () =>
+            {
+                await action();
+                return null;
+            },
+            logger,
+            messagePrefix);
+
+    private static async Task WithProgressLoggingAsync(Func<Task<string?>> action, TextWriter logger, string messagePrefix)
+    {
+#pragma warning disable CA1849
+        var sw = Stopwatch.StartNew();
+
+        logger.WriteLine($"{messagePrefix}... ");
+
+        try
+        {
+            var completedMessage = await action();
+            logger.WriteLine($"{messagePrefix} {("DONE " + completedMessage).TrimEnd()} in {GetDurationString()}");
+        }
+        catch (Exception e)
+        {
+            logger.WriteLine($"{messagePrefix} FAILED in {GetDurationString()}");
+            logger.WriteLine();
+            logger.WriteLine(e.ToString());
+            throw;
+        }
+
+        string GetDurationString() => $"{Math.Round(sw.Elapsed.TotalSeconds, MidpointRounding.AwayFromZero)}s";
+
+#pragma warning restore CA1849
     }
 }
