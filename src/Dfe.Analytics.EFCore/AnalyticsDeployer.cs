@@ -15,30 +15,31 @@ public class AnalyticsDeployer(
         DatabaseSyncConfiguration configuration,
         string airbyteConnectionId,
         string hiddenPolicyTagName,
-        TextWriter? logger = null,
+        IProgressReporter? progressReporter = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(airbyteConnectionId);
         ArgumentNullException.ThrowIfNull(hiddenPolicyTagName);
 
-        logger ??= Console.Out;
+        progressReporter ??= new ConsoleProgressReporter();
 
-        await WithProgressLoggingAsync(
-            () => UpdateBigQueryPolicyTagsAsync(configuration, hiddenPolicyTagName, logger, cancellationToken),
-            logger,
+        await WithProgressReportingAsync(
+            () => UpdateBigQueryPolicyTagsAsync(configuration, hiddenPolicyTagName, progressReporter, cancellationToken),
+            progressReporter,
             "Updating BigQuery policy tags");
 
-        await WithProgressLoggingAsync(
-            () => ApplyAirbyteConfigurationAsync(configuration, airbyteConnectionId, logger, cancellationToken),
-            logger,
+        await WithProgressReportingAsync(
+            () => ApplyAirbyteConfigurationAsync(configuration, airbyteConnectionId, progressReporter, cancellationToken),
+            progressReporter,
             "Applying Airbyte configuration");
     }
 
-    private async Task ApplyAirbyteConfigurationAsync(
+    // internal for testing
+    internal async Task ApplyAirbyteConfigurationAsync(
         DatabaseSyncConfiguration configuration,
         string connectionId,
-        TextWriter logger,
+        IProgressReporter progressReporter,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(connectionId);
@@ -68,10 +69,11 @@ public class AnalyticsDeployer(
         await airbyteApiClient.UpdateConnectionDetailsAsync(connectionId, updateRequest, cancellationToken);
     }
 
-    private async Task UpdateBigQueryPolicyTagsAsync(
+    // internal for testing
+    internal async Task UpdateBigQueryPolicyTagsAsync(
         DatabaseSyncConfiguration configuration,
         string hiddenPolicyTagName,
-        TextWriter logger,
+        IProgressReporter progressReporter,
         CancellationToken cancellationToken = default)
     {
         var bigQueryClient = optionsAccessor.Value.BigQueryClient ?? throw new InvalidOperationException("BigQuery client is not configured.");
@@ -80,9 +82,9 @@ public class AnalyticsDeployer(
 
         foreach (var table in configuration.Tables)
         {
-            await WithProgressLoggingAsync(
+            await WithProgressReportingAsync(
                 () => ProcessTableAsync(table),
-                logger,
+                progressReporter,
                 $"  {table.Name}");
         }
 
@@ -130,33 +132,33 @@ public class AnalyticsDeployer(
         }
     }
 
-    private static Task WithProgressLoggingAsync(Func<Task> action, TextWriter logger, string messagePrefix) =>
-        WithProgressLoggingAsync(
+    private static Task WithProgressReportingAsync(Func<Task> action, IProgressReporter progressReporter, string messagePrefix) =>
+        WithProgressReportingAsync(
             async () =>
             {
                 await action();
                 return null;
             },
-            logger,
+            progressReporter,
             messagePrefix);
 
-    private static async Task WithProgressLoggingAsync(Func<Task<string?>> action, TextWriter logger, string messagePrefix)
+    private static async Task WithProgressReportingAsync(Func<Task<string?>> action, IProgressReporter progressReporter, string messagePrefix)
     {
 #pragma warning disable CA1849
         var sw = Stopwatch.StartNew();
 
-        logger.WriteLine($"{messagePrefix}... ");
+        progressReporter.WriteLine($"{messagePrefix}... ");
 
         try
         {
             var completedMessage = await action();
-            logger.WriteLine($"{messagePrefix} {("DONE " + completedMessage).TrimEnd()} in {GetDurationString()}");
+            progressReporter.WriteLine($"{messagePrefix} {("DONE " + completedMessage).TrimEnd()} in {GetDurationString()}");
         }
         catch (Exception e)
         {
-            logger.WriteLine($"{messagePrefix} FAILED in {GetDurationString()}");
-            logger.WriteLine();
-            logger.WriteLine(e.ToString());
+            progressReporter.WriteLine($"{messagePrefix} FAILED in {GetDurationString()}");
+            progressReporter.WriteLine(string.Empty);
+            progressReporter.WriteLine(e.ToString());
             throw;
         }
 
