@@ -70,7 +70,7 @@ internal static partial class Commands
 
             using var scope = services.CreateScope();
 
-            var configuration = DatabaseSyncConfiguration.ReadFromFile(configurationPath);
+            var configuration = await DatabaseSyncConfiguration.ReadFromFileAsync(configurationPath);
 
             var analyticsDeployer = scope.ServiceProvider.GetRequiredService<AnalyticsDeployer>();
             await analyticsDeployer.DeployAsync(configuration, airbyteConnectionId, hiddenPolicyTagName);
