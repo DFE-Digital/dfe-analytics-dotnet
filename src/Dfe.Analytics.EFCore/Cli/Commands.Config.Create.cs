@@ -26,7 +26,7 @@ internal static partial class Commands
             var configurationProvider = new AnalyticsConfigurationProvider();
             var configuration = configurationProvider.GetConfiguration(dbContext);
 
-            configuration.WriteToFile(configurationFilePath);
+            return configuration.WriteToFileAsync(configurationFilePath);
         });
 
         return command;

@@ -44,6 +44,26 @@ public class AnalyticsConfigurationProviderTests
             });
     }
 
+    [Fact]
+    public async Task ReadAndWriteConfigurationToFile()
+    {
+        // Arrange
+        var tempFilePath = Path.GetTempFileName();
+
+        var dbContext = new TestDbContext();
+
+        var provider = new AnalyticsConfigurationProvider();
+        var configuration = provider.GetConfiguration(dbContext);
+
+        // Act
+        await configuration.WriteToFileAsync(tempFilePath, TestContext.Current.CancellationToken);
+
+        var configurationFromFile = await DatabaseSyncConfiguration.ReadFromFileAsync(tempFilePath, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(configuration, configurationFromFile);
+    }
+
     private class TestDbContext : DbContext
     {
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
