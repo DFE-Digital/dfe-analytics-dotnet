@@ -1,5 +1,4 @@
 using Dfe.Analytics.EFCore.Configuration;
-using Microsoft.EntityFrameworkCore;
 
 namespace Dfe.Analytics.EFCore.Tests.Configuration;
 
@@ -28,12 +27,12 @@ public class AnalyticsConfigurationProviderTests
                     column =>
                     {
                         Assert.Equal("DateOfBirth", column.Name);
-                        Assert.True(column.Hidden);
+                        Assert.False(column.Hidden);
                     },
                     column =>
                     {
                         Assert.Equal("Name", column.Name);
-                        Assert.False(column.Hidden);
+                        Assert.True(column.Hidden);
                     },
                     column =>
                     {
@@ -62,31 +61,5 @@ public class AnalyticsConfigurationProviderTests
 
         // Assert
         Assert.Equal(configuration, configurationFromFile);
-    }
-
-    private class TestDbContext : DbContext
-    {
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        {
-            optionsBuilder.UseNpgsql();
-        }
-
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            var testEntityConfiguration = modelBuilder.Entity<TestEntity>();
-            testEntityConfiguration.IncludeInAnalyticsSync(hidden: false);
-            testEntityConfiguration.HasKey(t => t.TestEntityId);
-            testEntityConfiguration.Property(t => t.Name);
-            testEntityConfiguration.Property(t => t.DateOfBirth).ConfigureAnalyticsSync(hidden: true);
-            testEntityConfiguration.Ignore(t => t.Ignored);
-        }
-    }
-
-    private class TestEntity
-    {
-        public int TestEntityId { get; set; }
-        public string? Name { get; set; }
-        public string? Ignored { get; set; }
-        public DateOnly DateOfBirth { get; set; }
     }
 }
