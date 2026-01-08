@@ -2,7 +2,7 @@
 
   <Target Name="CreateDfeAnalyticsDirectory"
           AfterTargets="Publish"
-          Condition="'$(DfeAnalyticsDbContextType)' != '' And '$(IsPublishable)' == 'true'">
+          Condition="'$(DfeAnalyticsDbContext)' != '' And '$(IsPublishable)' == 'true'">
 
     <PropertyGroup>
       <AnalyticsDirName>dfe-analytics</AnalyticsDirName>
@@ -14,7 +14,7 @@
 
       <CliArgs>config create</CliArgs>
       <CliArgs>$(CliArgs) --path $(AnalyticsDirName)/$(ConfigFileName)</CliArgs>
-      <CliArgs>$(CliArgs) --dbcontext "$(DfeAnalyticsDbContextType)"</CliArgs>
+      <CliArgs>$(CliArgs) --dbcontext "$(DfeAnalyticsDbContext)"</CliArgs>
     </PropertyGroup>
 
     <MakeDir Directories="$(PublishDir)/$(AnalyticsDirName)" />
