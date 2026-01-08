@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <TargetFrameworks>$(EFPackageTfms)</TargetFrameworks>
     <OutputType>Exe</OutputType>
     <Description>Entity Framework Core integration for DfE Analytics.</Description>
     <NoWarn>$(NoWarn);CA1515</NoWarn>
