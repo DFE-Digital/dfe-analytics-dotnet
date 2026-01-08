@@ -1,50 +1,50 @@
 <Project>
 
-  <Target Name="_CreateDfeAnalyticsDirectory"
+  <Target Name="CreateDfeAnalyticsDirectory"
           AfterTargets="Publish"
           Condition="'$(DfeAnalyticsDbContextType)' != '' And '$(IsPublishable)' == 'true'">
 
     <PropertyGroup>
-      <_AnalyticsDirName>dfe-analytics</_AnalyticsDirName>
+      <AnalyticsDirName>dfe-analytics</AnalyticsDirName>
 
-      <_AppPath>$(AssemblyName).dll</_AppPath>
-      <_ConfigFileName>db-config.json</_ConfigFileName>
-      <_CliPath>$(MSBuildThisFileDirectory)..\lib\$(TargetFramework)\Dfe.Analytics.EFCore.dll</_CliPath>
-      <_DepsFileName>$(AssemblyName).deps.json</_DepsFileName>
+      <AppPath>$(AssemblyName).dll</AppPath>
+      <ConfigFileName>db-config.json</ConfigFileName>
+      <CliPath>$(MSBuildThisFileDirectory)..\lib\$(TargetFramework)\Dfe.Analytics.EFCore.dll</CliPath>
+      <DepsFileName>$(AssemblyName).deps.json</DepsFileName>
 
-      <_CliArgs>config create</_CliArgs>
-      <_CliArgs>$(_CliArgs) --path $(_AnalyticsDirName)/$(_ConfigFileName)</_CliArgs>
-      <_CliArgs>$(_CliArgs) --dbcontext "$(DfeAnalyticsDbContextType)"</_CliArgs>
+      <CliArgs>config create</CliArgs>
+      <CliArgs>$(CliArgs) --path $(AnalyticsDirName)/$(ConfigFileName)</CliArgs>
+      <CliArgs>$(CliArgs) --dbcontext "$(DfeAnalyticsDbContextType)"</CliArgs>
     </PropertyGroup>
 
-    <MakeDir Directories="$(PublishDir)/$(_AnalyticsDirName)" />
+    <MakeDir Directories="$(PublishDir)/$(AnalyticsDirName)" />
 
-    <Exec Command="dotnet exec --depsfile $(_DepsFileName) $(_CliPath) $(_CliArgs)"
+    <Exec Command="dotnet exec --depsfile $(DepsFileName) $(CliPath) $(CliArgs)"
           WorkingDirectory="$(PublishDir)"
           LogStandardErrorAsError="true" />
 
     <PropertyGroup>
-      <_ApplyConfigScript>
+      <ApplyConfigScript>
         <![CDATA[
 #!/bin/sh
 
 cd "%24(dirname "$0")"
-dotnet exec --depsfile ../$(_DepsFileName) ../Dfe.Analytics.EFCore.dll config apply --path $(_ConfigFileName) "$@"
+dotnet exec --depsfile ../$(DepsFileName) ../Dfe.Analytics.EFCore.dll config apply --path $(ConfigFileName) "$@"
 ]]>
-      </_ApplyConfigScript>
+      </ApplyConfigScript>
     </PropertyGroup>
 
-    <WriteLinesToFile File="$(PublishDir)$(_AnalyticsDirName)/apply-config.sh"
+    <WriteLinesToFile File="$(PublishDir)$(AnalyticsDirName)/apply-config.sh"
                       Overwrite="true"
-                      Lines="$(_ApplyConfigScript)" />
+                      Lines="$(ApplyConfigScript)" />
 
   </Target>
 
-  <Target Name="_CopyRuntimeConfigToPublishDir"
+  <Target Name="CopyRuntimeConfigToPublishDir"
           AfterTargets="Publish">
 
     <PropertyGroup>
-      <_RuntimeConfigFile>$(AssemblyName).runtimeconfig.json</_RuntimeConfigFile>
+      <RuntimeConfigFile>$(AssemblyName).runtimeconfig.json</RuntimeConfigFile>
     </PropertyGroup>
 
     <Copy SourceFiles="$(MSBuildThisFileDirectory)..\lib\$(TargetFramework)\Dfe.Analytics.EFCore.runtimeconfig.json"
