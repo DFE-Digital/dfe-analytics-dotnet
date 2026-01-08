@@ -77,7 +77,8 @@ public class AnalyticsConfigurationProvider
             if (columnSyncMetadata?.Included ?? tableSyncMetadata.DefaultColumnSettings.Included)
             {
                 var hidden = columnSyncMetadata?.Hidden ?? tableSyncMetadata.DefaultColumnSettings.Hidden ??
-                    throw new InvalidOperationException($"Property '{property.Name}' in entity '{entityType.Name}' does not 'hidden' flag set.");
+                    throw new InvalidOperationException(
+                        $"The 'hidden' attribute of the '{property.Name}' property in entity '{entityType.Name}' is not set.");
 
                 columnSyncInfos.Add(new ColumnSyncInfo
                 {
