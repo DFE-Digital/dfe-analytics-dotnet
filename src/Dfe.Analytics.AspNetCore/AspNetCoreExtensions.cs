@@ -1,3 +1,4 @@
+using Dfe.Analytics.Events;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -39,7 +40,7 @@ public static class AspNetCoreExtensions
         ArgumentNullException.ThrowIfNull(setupAction);
 
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DfeAnalyticsAspNetCoreOptions>, DfeAnalyticsAspNetCoreConfigureOptions>());
-        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IPostConfigureOptions<DfeAnalyticsAspNetCoreOptions>, DfeAnalyticsAspNetCorePostConfigureOptions>());
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DfeAnalyticsAspNetCoreOptions>, DfeAnalyticsEventsConfigureOptions>());
         builder.Services.Configure(setupAction);
 
         return builder;

@@ -1,5 +1,7 @@
 using System.Globalization;
 using System.Threading.RateLimiting;
+using Dfe.Analytics.Events;
+using Google.Cloud.BigQuery.V2;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
@@ -74,7 +76,7 @@ public class DfeAnalyticsMiddleware
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        Options.ValidateOptions();
+        ValidateOptions();
 
         var @event = InitializeEvent(context);
         context.Features.Set(new WebRequestEventFeature(@event));
@@ -118,13 +120,13 @@ public class DfeAnalyticsMiddleware
                     }
                 }
 
-                var bigQueryClient = Options.BigQueryClient;
+                var bigQueryClient = Options.BigQueryClient!;
 
                 var row = @event.ToBigQueryInsertRow();
 
                 await bigQueryClient.InsertRowAsync(
                     Options.DatasetId,
-                    Options.TableId,
+                    AspNetCoreOptions.TableId,
                     row);
 
                 feature.MarkEventSent();
@@ -152,13 +154,13 @@ public class DfeAnalyticsMiddleware
     /// <returns>The initialized event.</returns>
     protected virtual Event InitializeEvent(HttpContext context)
     {
-        Options.ValidateOptions();
+        ValidateOptions();
 
         return new()
         {
             OccurredAt = TimeProvider.GetUtcNow().UtcDateTime,
-            Environment = Options.Environment,
-            Namespace = Options.Namespace
+            Environment = AspNetCoreOptions.Environment!,
+            Namespace = AspNetCoreOptions.Namespace
         };
     }
 
@@ -173,7 +175,7 @@ public class DfeAnalyticsMiddleware
         ArgumentNullException.ThrowIfNull(@event);
         ArgumentNullException.ThrowIfNull(context);
 
-        Options.ValidateOptions();
+        ValidateOptions();
         @event.AnonymizedUserAgentAndIp = GetAnonymizedUserAgentAndIp(context);
         @event.RequestId = context.TraceIdentifier;
         @event.RequestMethod = context.Request.Method;
@@ -238,5 +240,28 @@ public class DfeAnalyticsMiddleware
         // if UserId is not set then try to get it now.
 
         @event.UserId ??= AspNetCoreOptions.GetUserIdFromRequest?.Invoke(context);
+    }
+
+    internal void ValidateOptions()
+    {
+        if (Options.BigQueryClient is null)
+        {
+            throw new InvalidOperationException($"{nameof(BigQueryClient)} has not been configured.");
+        }
+
+        if (Options.DatasetId is null)
+        {
+            throw new InvalidOperationException($"{nameof(Options.DatasetId)} has not been configured.");
+        }
+
+        if (AspNetCoreOptions.TableId is null)
+        {
+            throw new InvalidOperationException($"{nameof(AspNetCoreOptions.TableId)} has not been configured.");
+        }
+
+        if (AspNetCoreOptions.Environment is null)
+        {
+            throw new InvalidOperationException($"{nameof(AspNetCoreOptions.Environment)} has not been configured.");
+        }
     }
 }

@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+Splits library into separate `Dfe.Analytics.Core` and `Dfe.Analytics.AspNetCore` packages.
+
 ## 0.3.0
 
 Adds support for .NET 10.

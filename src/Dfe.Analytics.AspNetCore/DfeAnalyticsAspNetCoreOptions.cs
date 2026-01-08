@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Threading.RateLimiting;
+using Dfe.Analytics.Events;
 using Microsoft.AspNetCore.Http;
 
 namespace Dfe.Analytics.AspNetCore;
@@ -7,8 +8,16 @@ namespace Dfe.Analytics.AspNetCore;
 /// <summary>
 /// Options to configure <see cref="DfeAnalyticsMiddleware"/>.
 /// </summary>
-public class DfeAnalyticsAspNetCoreOptions
+public class DfeAnalyticsAspNetCoreOptions : DfeAnalyticsEventsOptions
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DfeAnalyticsAspNetCoreOptions"/> class.
+    /// </summary>
+    public DfeAnalyticsAspNetCoreOptions()
+    {
+        GetUserIdFromRequest = GetUserIdFromUserClaims;
+    }
+
     /// <summary>
     /// A delegate that returns the signed-in user's ID, if any.
     /// </summary>
@@ -20,7 +29,7 @@ public class DfeAnalyticsAspNetCoreOptions
     /// <summary>
     /// The claim type that contains the signed-in user's ID.
     /// </summary>
-    public string? UserIdClaimType { get; set; }
+    public string? UserIdClaimType { get; set; } = ClaimTypes.NameIdentifier;
 
     /// <summary>
     /// A filter that controls whether a web request event is sent for a given <see cref="HttpContext"/>.
