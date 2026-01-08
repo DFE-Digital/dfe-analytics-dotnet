@@ -12,6 +12,8 @@
     <IsPackage Condition="'$(MSBuildProjectName)' == 'Dfe.Analytics.Core'">true</IsPackage>
     <IsPackage Condition="'$(MSBuildProjectName)' == 'Dfe.Analytics.AspNetCore'">true</IsPackage>
     <IsPackage Condition="'$(MSBuildProjectName)' == 'Dfe.Analytics.EFCore'">true</IsPackage>
+
+    <EFPackageTfms>net8.0;net9.0;net10.0</EFPackageTfms>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(IsTestProject)' != 'true'">
