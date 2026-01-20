@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.3.0
+
+Adds support for .NET 10.
 
 Overhauls authentication to use new extensibility points in the Google SDK and simplify setup by auto-detecting authentication mechanism to use.
 
