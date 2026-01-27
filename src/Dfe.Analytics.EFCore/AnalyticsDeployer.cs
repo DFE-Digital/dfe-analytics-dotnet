@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json.Nodes;
 using Dfe.Analytics.EFCore.AirbyteApi;
 using Dfe.Analytics.EFCore.Configuration;
 using Microsoft.Extensions.Options;
@@ -25,14 +26,14 @@ public class AnalyticsDeployer(
         progressReporter ??= new ConsoleProgressReporter();
 
         await WithProgressReportingAsync(
-            () => UpdateBigQueryPolicyTagsAsync(configuration, hiddenPolicyTagName, progressReporter, cancellationToken),
-            progressReporter,
-            "Updating BigQuery policy tags");
-
-        await WithProgressReportingAsync(
             () => ApplyAirbyteConfigurationAsync(configuration, airbyteConnectionId, progressReporter, cancellationToken),
             progressReporter,
             "Applying Airbyte configuration");
+
+        await WithProgressReportingAsync(
+            () => UpdateBigQueryPolicyTagsAsync(configuration, hiddenPolicyTagName, progressReporter, cancellationToken),
+            progressReporter,
+            "Updating BigQuery policy tags");
     }
 
     // internal for testing
@@ -44,6 +45,36 @@ public class AnalyticsDeployer(
     {
         ArgumentNullException.ThrowIfNull(connectionId);
 
+        // Retrieve connection details to get source ID
+        var connectionResponse = await WithProgressReportingAsync(
+            () => airbyteApiClient.ConfigurationApiPostAsync(
+                "/api/v1/connections/get",
+                new JsonObject
+                {
+                    ["connectionId"] = connectionId
+                },
+                cancellationToken),
+            progressReporter,
+            "  Retrieving Airbyte connection details");
+
+        var sourceId = connectionResponse["sourceId"]?.GetValue<string>() ??
+            throw new InvalidOperationException("'sourceId' is missing from '/v1/connections/get' response.");
+
+        // Trigger schema discovery to ensure Airbyte has the latest schema
+        await WithProgressReportingAsync(
+            () => airbyteApiClient.ConfigurationApiPostAsync(
+                "/api/v1/sources/discover_schema",
+                new JsonObject
+                {
+                    ["sourceId"] = sourceId,
+                    ["disable_cache"] = true,
+                    ["priority"] = "high"
+                },
+                cancellationToken),
+            progressReporter,
+            "  Discovering source schema");
+
+        // Update connection with new streams configuration
         var updateRequest = new UpdateConnectionDetailsRequest
         {
             Configurations =
@@ -80,6 +111,12 @@ public class AnalyticsDeployer(
         var projectId = optionsAccessor.Value.ProjectId ?? throw new InvalidOperationException("BigQuery project ID is not configured.");
         var datasetId = optionsAccessor.Value.DatasetId ?? throw new InvalidOperationException("BigQuery dataset ID is not configured.");
 
+        var allTableIds = new List<string>();
+        await foreach (var table in bigQueryClient.ListTablesAsync(projectId, datasetId).WithCancellation(cancellationToken))
+        {
+            allTableIds.Add(table.Reference.TableId);
+        }
+
         foreach (var table in configuration.Tables)
         {
             await WithProgressReportingAsync(
@@ -91,10 +128,26 @@ public class AnalyticsDeployer(
         async Task<string?> ProcessTableAsync(TableSyncInfo table)
         {
             var tableId = table.Name;
+
+            bool schemaUpdateRequired;
+
+            if (!allTableIds.Contains(tableId))
+            {
+                schemaUpdateRequired = table.Columns.Any(c => c.Hidden);
+
+                if (schemaUpdateRequired)
+                {
+                    throw new InvalidOperationException(
+                        $"Table '{tableId}' not found in BigQuery dataset '{datasetId}'.");
+                }
+
+                return "[skipped - table does not exist]";
+            }
+
             var bqTable = await bigQueryClient.GetTableAsync(projectId, datasetId, tableId, cancellationToken: cancellationToken);
             var schema = bqTable.Schema;
 
-            var schemaChanged = false;
+            schemaUpdateRequired = false;
 
             foreach (var column in table.Columns)
             {
@@ -117,17 +170,17 @@ public class AnalyticsDeployer(
                 }
 
                 var policyTagNamesChanged = !existingPolicyTagNames.SetEquals(bqField.PolicyTags.Names);
-                schemaChanged |= policyTagNamesChanged;
+                schemaUpdateRequired |= policyTagNamesChanged;
             }
 
-            if (schemaChanged)
+            if (schemaUpdateRequired)
             {
                 await bigQueryClient.PatchTableAsync(projectId, datasetId, tableId, bqTable.Resource, cancellationToken: cancellationToken);
                 return "[schema updated]";
             }
             else
             {
-                return "[no changes required]";
+                return "[skipped - no changes required]";
             }
         }
     }
@@ -137,12 +190,40 @@ public class AnalyticsDeployer(
             async () =>
             {
                 await action();
-                return null;
+                return new CompletionWithProgressMessage(null);
             },
             progressReporter,
             messagePrefix);
 
-    private static async Task WithProgressReportingAsync(Func<Task<string?>> action, IProgressReporter progressReporter, string messagePrefix)
+    private static Task<T> WithProgressReportingAsync<T>(Func<Task<T>> action, IProgressReporter progressReporter, string messagePrefix) =>
+        WithProgressReportingAsync(
+            async () =>
+            {
+                var result = await action();
+                return new CompletionWithProgressMessage<T>(result, null);
+            },
+            progressReporter,
+            messagePrefix);
+
+    private static async Task WithProgressReportingAsync(
+        Func<Task<CompletionWithProgressMessage>> action,
+        IProgressReporter progressReporter,
+        string messagePrefix)
+    {
+        await WithProgressReportingAsync(
+            async () =>
+            {
+                var completion = await action();
+                return new CompletionWithProgressMessage<bool>(true, completion.Message);
+            },
+            progressReporter,
+            messagePrefix);
+    }
+
+    private static async Task<T> WithProgressReportingAsync<T>(
+        Func<Task<CompletionWithProgressMessage<T>>> action,
+        IProgressReporter progressReporter,
+        string messagePrefix)
     {
 #pragma warning disable CA1849
         var sw = Stopwatch.StartNew();
@@ -151,8 +232,9 @@ public class AnalyticsDeployer(
 
         try
         {
-            var completedMessage = await action();
-            progressReporter.WriteLine($"{messagePrefix} {("DONE " + completedMessage).TrimEnd()} in {GetDurationString()}");
+            var completion = await action();
+            progressReporter.WriteLine($"{messagePrefix} {("DONE " + completion.Message).TrimEnd()} in {GetDurationString()}");
+            return completion.Result;
         }
         catch (Exception e)
         {
@@ -163,7 +245,10 @@ public class AnalyticsDeployer(
         }
 
         string GetDurationString() => $"{Math.Round(sw.Elapsed.TotalSeconds, MidpointRounding.AwayFromZero)}s";
-
 #pragma warning restore CA1849
     }
+
+    private record CompletionWithProgressMessage(string? Message);
+
+    private record CompletionWithProgressMessage<T>(T Result, string? Message);
 }

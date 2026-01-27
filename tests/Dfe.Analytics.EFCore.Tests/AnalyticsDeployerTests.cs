@@ -1,6 +1,8 @@
+using System.Net.Http.Json;
 using System.Text.Json.Nodes;
 using Dfe.Analytics.EFCore.AirbyteApi;
 using Dfe.Analytics.EFCore.Configuration;
+using Google.Api.Gax;
 using Google.Apis.Bigquery.v2.Data;
 using Google.Cloud.BigQuery.V2;
 using JustEat.HttpClientInterception;
@@ -17,24 +19,54 @@ public class AnalyticsDeployerTests
     private const string HiddenPolicyTagName = "projects/dummy-project/locations/us/taxonomies/dummy-taxonomy/policyTags/dummy-policy-tag";
 
     [Fact]
-    public async Task ApplyAirbyteConfigurationAsync_CallsAirbyteApiWithExpectedPayload()
+    public async Task ApplyAirbyteConfigurationAsync_UpdatesAirbyteConnectionWithExpectedPayload()
     {
         // Arrange
         var configuration = GetConfiguration();
         var connectionId = Guid.NewGuid().ToString();
+        var sourceId = Guid.NewGuid().ToString();
 
-        string? capturedRequestContent = null;
+        string? capturedConnectionUpdateRequestContent = null;
 
         var httpClientOptions = new HttpClientInterceptorOptions()
             .ThrowsOnMissingRegistration();
+
+        new HttpRequestInterceptionBuilder()
+            .Requests()
+            .ForMethod(new HttpMethod("POST"))
+            .ForHttps()
+            .ForAnyHost()
+            .ForPath("api/v1/connections/get")
+            .ForContent(req => req.ReadFromJsonAsync<JsonNode>().Result is JsonObject json &&
+                json["connectionId"]?.GetValue<string>() == connectionId)
+            .Responds()
+            .WithJsonContent(new JsonObject
+            {
+                ["sourceId"] = sourceId
+            })
+            .RegisterWith(httpClientOptions);
+
+        new HttpRequestInterceptionBuilder()
+            .Requests()
+            .ForMethod(new HttpMethod("POST"))
+            .ForHttps()
+            .ForAnyHost()
+            .ForPath("/api/v1/sources/discover_schema")
+            .ForContent(req => req.ReadFromJsonAsync<JsonNode>().Result is JsonObject json &&
+                json["sourceId"]?.GetValue<string>() == sourceId)
+            .Responds()
+            .WithJsonContent(new JsonObject())
+            .RegisterWith(httpClientOptions);
+
         new HttpRequestInterceptionBuilder()
             .Requests()
             .ForMethod(new HttpMethod("PATCH"))
             .ForHttps()
             .ForAnyHost()
             .ForPath($"api/public/v1/connections/{Uri.EscapeDataString(connectionId)}")
-            .WithInterceptionCallback(req => capturedRequestContent = req.Content?.ReadAsStringAsync().GetAwaiter().GetResult())
+            .WithInterceptionCallback(req => capturedConnectionUpdateRequestContent = req.Content?.ReadAsStringAsync().Result)
             .RegisterWith(httpClientOptions);
+
         var httpClient = httpClientOptions.CreateHttpClient();
         httpClient.BaseAddress = new Uri("https://dummy-airbyte/");
 
@@ -46,7 +78,7 @@ public class AnalyticsDeployerTests
         await deployer.ApplyAirbyteConfigurationAsync(configuration, connectionId, progressReporter, TestContext.Current.CancellationToken);
 
         // Assert
-        Assert.NotNull(capturedRequestContent);
+        Assert.NotNull(capturedConnectionUpdateRequestContent);
 
         var expectedJson = JsonNode.Parse("""
         {
@@ -91,7 +123,7 @@ public class AnalyticsDeployerTests
         }
         """);
 
-        var actualJson = JsonNode.Parse(capturedRequestContent!);
+        var actualJson = JsonNode.Parse(capturedConnectionUpdateRequestContent!);
 
         Assert.True(JsonNode.DeepEquals(expectedJson, actualJson));
     }
@@ -103,11 +135,20 @@ public class AnalyticsDeployerTests
         var configuration = GetConfiguration();
         var progressReporter = new RecordingProgressReporter();
 
+        var tableName = configuration.Tables.Select(t => t.Name).Single();
+
         using var httpClient = new HttpClient();
 
         var bigQueryClientMock = new Mock<BigQueryClient>();
+
         bigQueryClientMock
-            .Setup(mock => mock.GetTableAsync(ProjectId, DatasetId, configuration.Tables.Single().Name, It.IsAny<GetTableOptions>(), It.IsAny<CancellationToken>()))
+            .Setup(mock => mock.ListTablesAsync(ProjectId, DatasetId, It.IsAny<ListTablesOptions>()))
+            .Returns(new TestablePagedAsyncEnumerable<TableList, BigQueryTable>([
+                new BigQueryTable(bigQueryClientMock.Object, new Table { TableReference = new TableReference { TableId = tableName } })
+            ]));
+
+        bigQueryClientMock
+            .Setup(mock => mock.GetTableAsync(ProjectId, DatasetId, tableName, It.IsAny<GetTableOptions>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(() =>
             {
                 var table = new BigQueryTable(
@@ -146,11 +187,20 @@ public class AnalyticsDeployerTests
         var configuration = GetConfiguration();
         var progressReporter = new RecordingProgressReporter();
 
+        var tableName = configuration.Tables.Select(t => t.Name).Single();
+
         using var httpClient = new HttpClient();
 
         var bigQueryClientMock = new Mock<BigQueryClient>();
+
         bigQueryClientMock
-            .Setup(mock => mock.GetTableAsync(ProjectId, DatasetId, configuration.Tables.Single().Name, It.IsAny<GetTableOptions>(), It.IsAny<CancellationToken>()))
+            .Setup(mock => mock.ListTablesAsync(ProjectId, DatasetId, It.IsAny<ListTablesOptions>()))
+            .Returns(new TestablePagedAsyncEnumerable<TableList, BigQueryTable>([
+                new BigQueryTable(bigQueryClientMock.Object, new Table { TableReference = new TableReference { TableId = tableName } })
+            ]));
+
+        bigQueryClientMock
+            .Setup(mock => mock.GetTableAsync(ProjectId, DatasetId, tableName, It.IsAny<GetTableOptions>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(() =>
             {
                 var table = new BigQueryTable(
@@ -175,7 +225,7 @@ public class AnalyticsDeployerTests
             .Setup(mock => mock.PatchTableAsync(
                 ProjectId,
                 DatasetId,
-                configuration.Tables.Single().Name,
+                tableName,
                 It.Is<Table>(t =>
                     t.Schema.Fields.Single(f => f.Name == "Name").PolicyTags.Names.Contains(HiddenPolicyTagName)),
                 It.IsAny<PatchTableOptions>(),
@@ -199,11 +249,20 @@ public class AnalyticsDeployerTests
         var configuration = GetConfiguration();
         var progressReporter = new RecordingProgressReporter();
 
+        var tableName = configuration.Tables.Select(t => t.Name).Single();
+
         using var httpClient = new HttpClient();
 
         var bigQueryClientMock = new Mock<BigQueryClient>();
+
         bigQueryClientMock
-            .Setup(mock => mock.GetTableAsync(ProjectId, DatasetId, configuration.Tables.Single().Name, It.IsAny<GetTableOptions>(), It.IsAny<CancellationToken>()))
+            .Setup(mock => mock.ListTablesAsync(ProjectId, DatasetId, It.IsAny<ListTablesOptions>()))
+            .Returns(new TestablePagedAsyncEnumerable<TableList, BigQueryTable>([
+                new BigQueryTable(bigQueryClientMock.Object, new Table { TableReference = new TableReference { TableId = tableName } })
+            ]));
+
+        bigQueryClientMock
+            .Setup(mock => mock.GetTableAsync(ProjectId, DatasetId, tableName, It.IsAny<GetTableOptions>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(() =>
             {
                 var table = new BigQueryTable(
@@ -244,7 +303,7 @@ public class AnalyticsDeployerTests
             .Setup(mock => mock.PatchTableAsync(
                 ProjectId,
                 DatasetId,
-                configuration.Tables.Single().Name,
+                tableName,
                 It.Is<Table>(t =>
                     t.Schema.Fields.Single(f => f.Name == "Name").PolicyTags.Names.Contains(HiddenPolicyTagName) &&
                     !t.Schema.Fields.Single(f => f.Name == "DateOfBirth").PolicyTags.Names.Contains(HiddenPolicyTagName)),
@@ -269,11 +328,20 @@ public class AnalyticsDeployerTests
         var configuration = GetConfiguration();
         var progressReporter = new RecordingProgressReporter();
 
+        var tableName = configuration.Tables.Select(t => t.Name).Single();
+
         using var httpClient = new HttpClient();
 
         var bigQueryClientMock = new Mock<BigQueryClient>();
+
         bigQueryClientMock
-            .Setup(mock => mock.GetTableAsync(ProjectId, DatasetId, configuration.Tables.Single().Name, It.IsAny<GetTableOptions>(), It.IsAny<CancellationToken>()))
+            .Setup(mock => mock.ListTablesAsync(ProjectId, DatasetId, It.IsAny<ListTablesOptions>()))
+            .Returns(new TestablePagedAsyncEnumerable<TableList, BigQueryTable>([
+                new BigQueryTable(bigQueryClientMock.Object, new Table { TableReference = new TableReference { TableId = tableName } })
+            ]));
+
+        bigQueryClientMock
+            .Setup(mock => mock.GetTableAsync(ProjectId, DatasetId, tableName, It.IsAny<GetTableOptions>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(() =>
             {
                 var table = new BigQueryTable(
@@ -365,6 +433,22 @@ public class AnalyticsDeployerTests
             ArgumentNullException.ThrowIfNull(line);
 
             _lines.Add(line);
+        }
+    }
+
+    private class TestablePagedAsyncEnumerable<TResponse, TResource>(IEnumerable<TResource> data) : PagedAsyncEnumerable<TResponse, TResource>
+    {
+        private readonly TResource[] _data = data.ToArray();
+
+        public override Task<Page<TResource>> ReadPageAsync(int pageSize, CancellationToken cancellationToken = new CancellationToken())
+        {
+            var page = new Page<TResource>(_data.Take(pageSize), nextPageToken: null);
+            return Task.FromResult(page);
+        }
+
+        public override IAsyncEnumerator<TResource> GetAsyncEnumerator(CancellationToken cancellationToken = new CancellationToken())
+        {
+            return _data.ToAsyncEnumerable().GetAsyncEnumerator(cancellationToken);
         }
     }
 }
