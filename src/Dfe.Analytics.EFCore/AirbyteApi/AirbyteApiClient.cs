@@ -1,5 +1,7 @@
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
@@ -9,9 +11,25 @@ public class AirbyteApiClient(HttpClient httpClient)
 {
     private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web);
 
+    public async Task<JsonObject> ConfigurationApiPostAsync(string path, JsonObject body, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+        ArgumentNullException.ThrowIfNull(body);
+
+        using var content = CreateJsonContent(body);
+
+#pragma warning disable CA2234
+        var response = await httpClient.PostAsync(path, content, cancellationToken);
+#pragma warning restore CA2234
+        await response.EnsureSuccessStatusCodeWithContentAsync();
+
+        return (await response.Content.ReadFromJsonAsync<JsonObject>(_serializerOptions, cancellationToken))!;
+    }
+
     public async Task UpdateConnectionDetailsAsync(string connectionId, UpdateConnectionDetailsRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(connectionId);
+        ArgumentNullException.ThrowIfNull(request);
 
         using var content = CreateJsonContent(request);
 
@@ -22,7 +40,7 @@ public class AirbyteApiClient(HttpClient httpClient)
             content,
             cancellationToken);
 
-        response.EnsureSuccessStatusCode();
+        await response.EnsureSuccessStatusCodeWithContentAsync();
     }
 
     internal static void ConfigureHttpClient(IHttpClientBuilder clientBuilder)
@@ -87,6 +105,22 @@ public class AirbyteApiClient(HttpClient httpClient)
             var root = JsonDocument.Parse(responseJson).RootElement;
 
             return root.GetProperty("access_token").GetString() ?? throw new InvalidOperationException("Could not extract access token from response.");
+        }
+    }
+}
+
+file static class HttpResponseMessageExtensions
+{
+    public static async Task EnsureSuccessStatusCodeWithContentAsync(this HttpResponseMessage response)
+    {
+        if (!response.IsSuccessStatusCode)
+        {
+            var content = await response.Content.ReadAsStringAsync();
+
+            throw new HttpRequestException(
+                $"Response status code does not indicate success: {(int)response.StatusCode} ({response.ReasonPhrase}). Content:\n{content}",
+                null,
+                response.StatusCode);
         }
     }
 }
