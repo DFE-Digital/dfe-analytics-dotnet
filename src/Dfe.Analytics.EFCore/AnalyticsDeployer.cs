@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text.Json.Nodes;
 using Dfe.Analytics.EFCore.AirbyteApi;
 using Dfe.Analytics.EFCore.Configuration;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace Dfe.Analytics.EFCore;
@@ -14,6 +15,7 @@ public class AnalyticsDeployer(
 
     public async Task DeployAsync(
         DatabaseSyncConfiguration configuration,
+        DbContext dbContext,
         string airbyteConnectionId,
         string hiddenPolicyTagName,
         IProgressReporter? progressReporter = null,
@@ -24,6 +26,11 @@ public class AnalyticsDeployer(
         ArgumentNullException.ThrowIfNull(hiddenPolicyTagName);
 
         progressReporter ??= new ConsoleProgressReporter();
+
+        await WithProgressReportingAsync(
+            () => WaitForMigrationsAsync(dbContext, cancellationToken),
+            progressReporter,
+            "Waiting for migrations to be applied");
 
         await WithProgressReportingAsync(
             () => ApplyAirbyteConfigurationAsync(configuration, airbyteConnectionId, progressReporter, cancellationToken),
@@ -181,6 +188,20 @@ public class AnalyticsDeployer(
             else
             {
                 return "[skipped - no changes required]";
+            }
+        }
+    }
+
+    internal async Task WaitForMigrationsAsync(DbContext dbContext, CancellationToken cancellationToken)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(30));
+
+        while (await timer.WaitForNextTickAsync(cancellationToken))
+        {
+            var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync(cancellationToken);
+            if (!pendingMigrations.Any())
+            {
+                return;
             }
         }
     }
