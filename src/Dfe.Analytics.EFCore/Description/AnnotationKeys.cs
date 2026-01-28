@@ -6,4 +6,10 @@ internal static class AnnotationKeys
 
     internal const string TableAnalyticsSyncMetadata = BaseKeyName + nameof(TableAnalyticsSyncMetadata);
     internal const string ColumnAnalyticsSyncMetadata = BaseKeyName + nameof(ColumnAnalyticsSyncMetadata);
+
+    internal static IReadOnlyCollection<string> All { get; } =
+    [
+        TableAnalyticsSyncMetadata,
+        ColumnAnalyticsSyncMetadata
+    ];
 }
