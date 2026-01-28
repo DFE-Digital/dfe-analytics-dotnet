@@ -1,5 +1,45 @@
 <Project>
 
+  <PropertyGroup>
+    <CoreCompileDependsOn>
+      CreateDfeAnalyticsDesignTimeServicesClass;
+      $(CoreCompileDependsOn)
+    </CoreCompileDependsOn>
+  </PropertyGroup>
+
+  <Target Name="CreateDfeAnalyticsDesignTimeServicesClass">
+
+    <PropertyGroup>
+      <DesignTimeServicesClassPath>$(IntermediateOutputPath)Dfe.Analytics.EFCore.DesignTimeServices.g.cs</DesignTimeServicesClassPath>
+
+      <DesignTimeServicesClass>
+        <![CDATA[
+using Dfe.Analytics.EFCore%3B
+using Microsoft.EntityFrameworkCore.Design%3B
+using Microsoft.Extensions.DependencyInjection%3B
+
+namespace $(RootNamespace)%3B
+
+public class DfeAnalyticsDesignTimeServices : IDesignTimeServices
+{
+    public void ConfigureDesignTimeServices(IServiceCollection services)
+    {
+        services.AddSingleton<IAnnotationCodeGenerator, DfeAnalyticsAnnotationCodeGenerator>()%3B
+    }
+}
+]]>
+      </DesignTimeServicesClass>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <Compile Include="$(DesignTimeServicesClassPath)" />
+    </ItemGroup>
+
+    <WriteLinesToFile File="$(DesignTimeServicesClassPath)"
+                      Overwrite="true"
+                      Lines="$(DesignTimeServicesClass)" />
+  </Target>
+
   <Target Name="CreateDfeAnalyticsDirectory"
           AfterTargets="Publish"
           Condition="'$(DfeAnalyticsDbContext)' != '' And '$(IsPublishable)' == 'true'">
