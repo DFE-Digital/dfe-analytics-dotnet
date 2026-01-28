@@ -9,6 +9,8 @@ public sealed class DatabaseSyncConfiguration : IEquatable<DatabaseSyncConfigura
         WriteIndented = true
     };
 
+    public required string DbContextName { get; init; }
+
     public required IReadOnlyCollection<TableSyncInfo> Tables { get; init; }
 
     public static async Task<DatabaseSyncConfiguration> ReadFromFileAsync(string configurationPath, CancellationToken cancellationToken = default)

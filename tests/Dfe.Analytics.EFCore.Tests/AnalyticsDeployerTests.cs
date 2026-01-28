@@ -406,6 +406,7 @@ public class AnalyticsDeployerTests
     private DatabaseSyncConfiguration GetConfiguration() =>
         new()
         {
+            DbContextName = typeof(TestDbContext).AssemblyQualifiedName!,
             Tables =
             [
                 new TableSyncInfo

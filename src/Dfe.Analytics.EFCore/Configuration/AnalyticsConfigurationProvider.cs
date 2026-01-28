@@ -14,6 +14,9 @@ public class AnalyticsConfigurationProvider
 
         ThrowIfUnsupportedProvider(dbContext);
 
+        var dbContextName = dbContext.GetType().AssemblyQualifiedName ??
+            throw new InvalidOperationException("Failed to get the assembly qualified name of the DbContext.");
+
         var tables = new List<TableSyncInfo>();
 
         foreach (var entityType in dbContext.Model.GetEntityTypes())
@@ -37,7 +40,7 @@ public class AnalyticsConfigurationProvider
             });
         }
 
-        return new DatabaseSyncConfiguration { Tables = tables.ToArray() };
+        return new DatabaseSyncConfiguration { DbContextName = dbContextName, Tables = tables.ToArray() };
     }
 
     private static TablePrimaryKeySyncInfo GetPrimaryKey(IEntityType entityType)

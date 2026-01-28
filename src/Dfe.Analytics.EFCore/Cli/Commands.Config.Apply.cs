@@ -6,6 +6,8 @@ namespace Dfe.Analytics.EFCore.Cli;
 
 internal static partial class Commands
 {
+    private const int DefaultTimeoutSeconds = 15 * 60;
+
     public static Command GetConfigApplyCommand()
     {
         // Configuration options
@@ -23,6 +25,9 @@ internal static partial class Commands
         var airbyteClientSecretOption = new Option<string>("--airbyte-client-secret") { Required = true };
         var airbyteConnectionIdOption = new Option<string>("--airbyte-connection-id") { Required = true };
 
+        // Execution options
+        var timeoutOption = new Option<int?>("--timeout-seconds") { DefaultValueFactory = _ => DefaultTimeoutSeconds };
+
         var command = new Command("apply", "Configures Airbyte and BigQuery with the specified configuration.")
         {
             configurationPathOption,
@@ -33,7 +38,8 @@ internal static partial class Commands
             airbyteApiBaseAddressOption,
             airbyteClientIdOption,
             airbyteClientSecretOption,
-            airbyteConnectionIdOption
+            airbyteConnectionIdOption,
+            timeoutOption
         };
 
         // Ignore unmatched tokens to allow for extra arguments (e.g. from future versions of the Terraform module that invokes this command)
@@ -50,6 +56,7 @@ internal static partial class Commands
             var airbyteClientSecret = parseResult.GetRequiredValue(airbyteClientSecretOption);
             var airbyteConnectionId = parseResult.GetRequiredValue(airbyteConnectionIdOption);
             var configurationPath = parseResult.GetRequiredValue(configurationPathOption);
+            var timeoutSeconds = parseResult.GetValue(timeoutOption) ?? DefaultTimeoutSeconds;
 
             var services = new ServiceCollection()
                 .AddDfeAnalytics(o =>
@@ -72,8 +79,12 @@ internal static partial class Commands
 
             var configuration = await DatabaseSyncConfiguration.ReadFromFileAsync(configurationPath);
 
+            using var dbContext = DbContextHelper.CreateDbContext(configuration.DbContextName);
+
             var analyticsDeployer = scope.ServiceProvider.GetRequiredService<AnalyticsDeployer>();
-            await analyticsDeployer.DeployAsync(configuration, airbyteConnectionId, hiddenPolicyTagName);
+            using var cts = new CancellationTokenSource();
+            cts.CancelAfter(timeoutSeconds * 1000);
+            await analyticsDeployer.DeployAsync(configuration, dbContext, airbyteConnectionId, hiddenPolicyTagName, cancellationToken: cts.Token);
         });
 
         return command;
