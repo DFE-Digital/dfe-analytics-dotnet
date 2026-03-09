@@ -1,5 +1,6 @@
 using System.CommandLine;
 using Dfe.Analytics.EFCore.Configuration;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfe.Analytics.EFCore.Cli;
@@ -25,6 +26,9 @@ internal static partial class Commands
         var airbyteClientSecretOption = new Option<string>("--airbyte-client-secret") { Required = true };
         var airbyteConnectionIdOption = new Option<string>("--airbyte-connection-id") { Required = true };
 
+        // Postgres options
+        var connectionStringOption = new Option<string>("--connection-string") { Required = true };
+
         // Execution options
         var timeoutOption = new Option<int?>("--timeout-seconds") { DefaultValueFactory = _ => DefaultTimeoutSeconds };
 
@@ -39,6 +43,7 @@ internal static partial class Commands
             airbyteClientIdOption,
             airbyteClientSecretOption,
             airbyteConnectionIdOption,
+            connectionStringOption,
             timeoutOption
         };
 
@@ -56,6 +61,7 @@ internal static partial class Commands
             var airbyteClientSecret = parseResult.GetRequiredValue(airbyteClientSecretOption);
             var airbyteConnectionId = parseResult.GetRequiredValue(airbyteConnectionIdOption);
             var configurationPath = parseResult.GetRequiredValue(configurationPathOption);
+            var connectionString = parseResult.GetRequiredValue(connectionStringOption);
             var timeoutSeconds = parseResult.GetValue(timeoutOption) ?? DefaultTimeoutSeconds;
 
             var services = new ServiceCollection()
@@ -80,6 +86,7 @@ internal static partial class Commands
             var configuration = await DatabaseSyncConfiguration.ReadFromFileAsync(configurationPath);
 
             using var dbContext = DbContextHelper.CreateDbContext(configuration.DbContextName);
+            dbContext.Database.SetConnectionString(connectionString);
 
             var analyticsDeployer = scope.ServiceProvider.GetRequiredService<AnalyticsDeployer>();
             using var cts = new CancellationTokenSource();
