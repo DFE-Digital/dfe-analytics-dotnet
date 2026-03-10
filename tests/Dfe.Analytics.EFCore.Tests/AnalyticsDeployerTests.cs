@@ -37,7 +37,7 @@ public class AnalyticsDeployerTests
             .ForHttps()
             .ForAnyHost()
             .ForPath("api/v1/connections/get")
-            .ForContent(req => req.ReadFromJsonAsync<JsonNode>().Result is JsonObject json &&
+            .ForContent(async req => await req.ReadFromJsonAsync<JsonNode>() is JsonObject json &&
                 json["connectionId"]?.GetValue<string>() == connectionId)
             .Responds()
             .WithJsonContent(new JsonObject
@@ -52,7 +52,7 @@ public class AnalyticsDeployerTests
             .ForHttps()
             .ForAnyHost()
             .ForPath("/api/v1/sources/discover_schema")
-            .ForContent(req => req.ReadFromJsonAsync<JsonNode>().Result is JsonObject json &&
+            .ForContent(async req => await req.ReadFromJsonAsync<JsonNode>() is JsonObject json &&
                 json["sourceId"]?.GetValue<string>() == sourceId)
             .Responds()
             .WithJsonContent(new JsonObject())
@@ -67,7 +67,7 @@ public class AnalyticsDeployerTests
             .WithInterceptionCallback(req => capturedConnectionUpdateRequestContent = req.Content?.ReadAsStringAsync().Result)
             .RegisterWith(httpClientOptions);
 
-        var httpClient = httpClientOptions.CreateHttpClient();
+        using var httpClient = httpClientOptions.CreateHttpClient();
         httpClient.BaseAddress = new Uri("https://dummy-airbyte/");
 
         var progressReporter = new RecordingProgressReporter();
@@ -385,6 +385,62 @@ public class AnalyticsDeployerTests
                 It.IsAny<PatchTableOptions>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
+    }
+
+    [Fact]
+    public async Task CompleteAirbyteSyncAsync_TriggersJobAndWaitsForCompletion()
+    {
+        // Arrange
+        var connectionId = Guid.NewGuid().ToString();
+        var jobId = 12345;
+
+        var httpClientOptions = new HttpClientInterceptorOptions()
+            .ThrowsOnMissingRegistration();
+
+        new HttpRequestInterceptionBuilder()
+            .Requests()
+            .ForMethod(new HttpMethod("POST"))
+            .ForHttps()
+            .ForAnyHost()
+            .ForPath("api/public/v1/jobs")
+            .ForContent(async req => await req.ReadFromJsonAsync<JsonNode>() is JsonObject json &&
+                json["connectionId"]?.GetValue<string>() == connectionId &&
+                json["jobType"]?.GetValue<string>() == "sync")
+            .Responds()
+            .WithJsonContent(new JsonObject
+            {
+                ["jobId"] = jobId,
+                ["status"] = "running",
+                ["jobType"] = "sync"
+            })
+            .RegisterWith(httpClientOptions);
+
+        new HttpRequestInterceptionBuilder()
+            .Requests()
+            .ForMethod(new HttpMethod("GET"))
+            .ForHttps()
+            .ForAnyHost()
+            .ForPath($"api/public/v1/jobs/{jobId}")
+            .Responds()
+            .WithJsonContent(new JsonObject
+            {
+                ["jobId"] = jobId,
+                ["status"] = "succeeded",
+                ["jobType"] = "sync"
+            })
+            .RegisterWith(httpClientOptions);
+
+        using var httpClient = httpClientOptions.CreateHttpClient();
+        httpClient.BaseAddress = new Uri("https://dummy-airbyte/");
+
+        var progressReporter = new RecordingProgressReporter();
+
+        var deployer = CreateDeployer(httpClient);
+
+        // Act
+        await deployer.CompleteAirbyteSyncAsync(connectionId, progressReporter, TestContext.Current.CancellationToken);
+
+        // Assert
     }
 
     private AnalyticsDeployer CreateDeployer(

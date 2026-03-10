@@ -2,14 +2,19 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 namespace Dfe.Analytics.EFCore.AirbyteApi;
 
+#pragma warning disable CA2234
 public class AirbyteApiClient(HttpClient httpClient)
 {
-    private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web);
+    private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web)
+    {
+        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
+    };
 
     public async Task<JsonObject> ConfigurationApiPostAsync(string path, JsonObject body, CancellationToken cancellationToken = default)
     {
@@ -18,12 +23,38 @@ public class AirbyteApiClient(HttpClient httpClient)
 
         using var content = CreateJsonContent(body);
 
-#pragma warning disable CA2234
         var response = await httpClient.PostAsync(path, content, cancellationToken);
-#pragma warning restore CA2234
+
         await response.EnsureSuccessStatusCodeWithContentAsync();
 
         return (await response.Content.ReadFromJsonAsync<JsonObject>(_serializerOptions, cancellationToken))!;
+    }
+
+    public async Task<GetJobStatusResponse> GetJobStatusAsync(long jobId, CancellationToken cancellationToken = default)
+    {
+        var response = await httpClient.GetAsync(
+            $"api/public/v1/jobs/{jobId}",
+            cancellationToken);
+
+        await response.EnsureSuccessStatusCodeWithContentAsync();
+
+        return (await response.Content.ReadFromJsonAsync<GetJobStatusResponse>(_serializerOptions, cancellationToken))!;
+    }
+
+    public async Task<TriggerJobResponse> TriggerJobAsync(TriggerJobRequest request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        using var content = CreateJsonContent(request);
+
+        var response = await httpClient.PostAsync(
+            "api/public/v1/jobs",
+            content,
+            cancellationToken);
+
+        await response.EnsureSuccessStatusCodeWithContentAsync();
+
+        return (await response.Content.ReadFromJsonAsync<TriggerJobResponse>(_serializerOptions, cancellationToken))!;
     }
 
     public async Task UpdateConnectionDetailsAsync(string connectionId, UpdateConnectionDetailsRequest request, CancellationToken cancellationToken = default)
@@ -33,9 +64,7 @@ public class AirbyteApiClient(HttpClient httpClient)
 
         using var content = CreateJsonContent(request);
 
-#pragma warning disable CA2234
         var response = await httpClient.PatchAsync(
-#pragma warning restore CA2234
             $"api/public/v1/connections/{Uri.EscapeDataString(connectionId)}",
             content,
             cancellationToken);
