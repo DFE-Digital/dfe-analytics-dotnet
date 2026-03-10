@@ -38,6 +38,11 @@ public class AnalyticsDeployer(
             "Applying Airbyte configuration");
 
         await WithProgressReportingAsync(
+            () => CompleteAirbyteSyncAsync(airbyteConnectionId, progressReporter, cancellationToken),
+            progressReporter,
+            "Waiting for sync to complete");
+
+        await WithProgressReportingAsync(
             () => UpdateBigQueryPolicyTagsAsync(configuration, hiddenPolicyTagName, progressReporter, cancellationToken),
             progressReporter,
             "Updating BigQuery policy tags");
@@ -105,6 +110,52 @@ public class AnalyticsDeployer(
         };
 
         await airbyteApiClient.UpdateConnectionDetailsAsync(connectionId, updateRequest, cancellationToken);
+    }
+
+    // internal for testing
+    internal async Task CompleteAirbyteSyncAsync(
+        string connectionId,
+        IProgressReporter progressReporter,
+        CancellationToken cancellationToken = default)
+    {
+        var triggerJobResponse = await WithProgressReportingAsync(
+            () => airbyteApiClient.TriggerJobAsync(
+                new TriggerJobRequest
+                {
+                    ConnectionId = connectionId,
+                    JobType = JobType.Sync
+                },
+                cancellationToken),
+            progressReporter,
+            "  Creating Airbyte sync job");
+
+        var jobId = triggerJobResponse.JobId;
+
+        await WithProgressReportingAsync(
+            WaitForCompletionAsync,
+            progressReporter,
+            "  Waiting for job to complete");
+
+        async Task WaitForCompletionAsync()
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(30));
+
+            do
+            {
+                var jobStatusResponse = await airbyteApiClient.GetJobStatusAsync(jobId, cancellationToken);
+
+                if (jobStatusResponse.Status is JobStatus.Succeeded)
+                {
+                    return;
+                }
+
+                if (jobStatusResponse.Status is not JobStatus.Pending and not JobStatus.Running)
+                {
+                    throw new InvalidOperationException($"Unexpected job status: '{jobStatusResponse.Status}'.");
+                }
+            }
+            while (await timer.WaitForNextTickAsync(cancellationToken));
+        }
     }
 
     // internal for testing
@@ -196,14 +247,16 @@ public class AnalyticsDeployer(
     {
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(30));
 
-        while (await timer.WaitForNextTickAsync(cancellationToken))
+        do
         {
             var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync(cancellationToken);
+
             if (!pendingMigrations.Any())
             {
                 return;
             }
         }
+        while (await timer.WaitForNextTickAsync(cancellationToken));
     }
 
     private static Task WithProgressReportingAsync(Func<Task> action, IProgressReporter progressReporter, string messagePrefix) =>
@@ -257,11 +310,9 @@ public class AnalyticsDeployer(
             progressReporter.WriteLine($"{messagePrefix} {("DONE " + completion.Message).TrimEnd()} in {GetDurationString()}");
             return completion.Result;
         }
-        catch (Exception e)
+        catch (Exception)
         {
             progressReporter.WriteLine($"{messagePrefix} FAILED in {GetDurationString()}");
-            progressReporter.WriteLine(string.Empty);
-            progressReporter.WriteLine(e.ToString());
             throw;
         }
 
