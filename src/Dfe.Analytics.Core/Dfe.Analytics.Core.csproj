@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
+    <PackageId>DfeAnalytics.Core</PackageId>
     <RootNamespace>Dfe.Analytics</RootNamespace>
     <Description>Core types for DfE Analytics.</Description>
   </PropertyGroup>

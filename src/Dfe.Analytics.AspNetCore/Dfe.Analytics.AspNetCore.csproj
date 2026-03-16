@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
+    <PackageId>DfeAnalytics.AspNetCore</PackageId>
     <Description>ASP.NET Core integration for DfE Analytics.</Description>
   </PropertyGroup>
 
