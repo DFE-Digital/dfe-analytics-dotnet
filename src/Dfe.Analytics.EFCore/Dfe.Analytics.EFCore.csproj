@@ -21,7 +21,7 @@
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.0">
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.0" GeneratePathProperty="true">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.0" />
@@ -30,7 +30,7 @@
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0">
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0" GeneratePathProperty="true">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.0" />
@@ -39,7 +39,7 @@
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0">
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0" GeneratePathProperty="true">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.0" />
@@ -53,5 +53,16 @@
   <ItemGroup>
     <Content Include="Package\**\*" Pack="true" PackagePath="$(RecursiveDir)" />
   </ItemGroup>
+
+  <Target Name="BundleEFCoreDesign" AfterTargets="Build" Condition="'$(PkgMicrosoft_EntityFrameworkCore_Design)' != ''">
+    <PropertyGroup>
+      <_DesignLibTfm>net8.0</_DesignLibTfm>
+      <_DesignLibTfm Condition="'$(TargetFramework)' == 'net10.0'">net10.0</_DesignLibTfm>
+    </PropertyGroup>
+
+    <Copy SourceFiles="$(PkgMicrosoft_EntityFrameworkCore_Design)\lib\$(_DesignLibTfm)\Microsoft.EntityFrameworkCore.Design.dll"
+          DestinationFolder="Package\lib\$(TargetFramework)"
+          SkipUnchangedFiles="true" />
+  </Target>
 
 </Project>
