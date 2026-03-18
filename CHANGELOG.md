@@ -1,8 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.4.0
 
 Splits library into separate `Dfe.Analytics.Core` and `Dfe.Analytics.AspNetCore` packages.
+
+Adds support for syncing database changes using Airbyte with the `Dfe.Analytics.EFCore` package.
 
 ## 0.3.0
 
