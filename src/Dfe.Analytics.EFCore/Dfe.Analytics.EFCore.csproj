@@ -3,7 +3,6 @@
   <PropertyGroup>
     <TargetFrameworks>$(EFPackageTfms)</TargetFrameworks>
     <PackageId>DfeAnalytics.EFCore</PackageId>
-    <OutputType>Exe</OutputType>
     <Description>Entity Framework Core integration for DfE Analytics.</Description>
     <NoWarn>$(NoWarn);CA1515</NoWarn>
     <!-- temp -->

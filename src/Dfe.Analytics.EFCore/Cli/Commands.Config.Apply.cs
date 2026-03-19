@@ -52,6 +52,7 @@ internal static partial class Commands
 
         command.SetAction(async parseResult =>
         {
+            var configurationPath = parseResult.GetRequiredValue(configurationPathOption);
             var googleCredentialsJson = parseResult.GetRequiredValue(googleCredentialsOption);
             var projectId = parseResult.GetRequiredValue(projectIdOption);
             var datasetId = parseResult.GetRequiredValue(datasetIdOption);
@@ -60,7 +61,6 @@ internal static partial class Commands
             var airbyteClientId = parseResult.GetRequiredValue(airbyteClientIdOption);
             var airbyteClientSecret = parseResult.GetRequiredValue(airbyteClientSecretOption);
             var airbyteConnectionId = parseResult.GetRequiredValue(airbyteConnectionIdOption);
-            var configurationPath = parseResult.GetRequiredValue(configurationPathOption);
             var connectionString = parseResult.GetRequiredValue(connectionStringOption);
             var timeoutSeconds = parseResult.GetValue(timeoutOption) ?? DefaultTimeoutSeconds;
 
