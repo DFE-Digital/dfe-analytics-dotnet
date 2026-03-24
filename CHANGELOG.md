@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.2
 
 Adds `airbyte_heartbeat` table to streams configuration.
 
