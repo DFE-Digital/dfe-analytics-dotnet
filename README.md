@@ -1,37 +1,168 @@
 # dfe-analytics-dotnet
 
-This library is a port of the [DfE::Analytics gem](https://github.com/DFE-Digital/dfe-analytics) for ASP.NET Core. Currently only web request events are supported.
-Applications must use ASP.NET Core 8.
+This library is a port of the [DfE::Analytics gem](https://github.com/DFE-Digital/dfe-analytics) for .NET.
+It supports capturing web request events in ASP.NET Core applications and capturing Postgres database changes via Airbyte in Entity Framework Core applications.
 
-## Installation
+Applications must use .NET 8, .NET 9 or .NET 10 and the corresponding ASP.NET Core and/or Entity Framework core libraries.
 
-Before you can send data to BigQuery with `dfe-analytics` you'll need to setup
-your Google Cloud project. See the [setup Google Cloud setup guide](https://github.com/DFE-Digital/dfe-analytics/blob/main/docs/google_cloud_bigquery_setup.md)
+
+## Pre-requisites
+
+Before you can send data to BigQuery you'll need to setup your Google Cloud project.
+See the [setup Google Cloud setup guide](https://github.com/DFE-Digital/dfe-analytics/blob/main/docs/google_cloud_bigquery_setup.md)
 for instructions on how to do that.
 
-### 1. Add the Dfe.Analytics library to your app
 
-The package is not yet available on nuget.org so needs to be downloaded and stored in your repository.
+## Capture database changes with Airbyte and Entity Framework Core
 
-Download the `nupkg` from the [latest release](https://github.com/DFE-Digital/dfe-analytics-dotnet/releases) and copy into a folder in your repository (e.g. `lib`).
+The `DfeAnalytics.EFCore` package provides integration with Entity Framework Core to capture database changes and send them to BigQuery via Airbyte.
 
-You may need to add a `nuget.config` file to add your package location as a package source:
+Only Postgres databases are supported and tables must be defined in a single `DbContext` type.
+
+Applications should use the [Airbyte Terraform module](https://github.com/DFE-Digital/terraform-modules/tree/main/aks/airbyte).
+
+### Installation & configuration
+
+#### 1. Add DfeAnalytics.EFCore to your app
+
+Install the package into your Entity Framework Core application:
+```
+dotnet add package DfeAnalytics.EFCore
+```
+
+> [!IMPORTANT]
+> This must be added to the project that contains your `DbContext` class.
+
+#### 2. Specify the DbContext type in `Directory.Build.props`
+
+Add a `Directory.Build.props` file (or update your existing one) to include the full name of your `DbContext` type and its containing assembly:
 
 ```xml
-<?xml version="1.0" encoding="utf-8"?>
-<configuration>
-  <packageSources>
-    <add key="lib" value="lib" protocolVersion="3" />
-  </packageSources>
-</configuration>
+<Project>
+  <PropertyGroup>
+    <DfeAnalyticsDbContext>MyApp.Data.MyDbContext, MyApp.Data</DfeAnalyticsDbContext>
+  </PropertyGroup>
+</Project>
 ```
 
-Install the package into your ASP.NET Core project:
-```
-dotnet add package DfE.Analytics
+#### 3. Configure tables and columns to sync
+
+You must explicitly opt-in for every table you want to sync to BigQuery. This configuration can be done in your `DbContext`'s `OnModelCreating` method:
+
+```cs
+using Dfe.Analytics.EFCore;
+
+public class MyEntity
+{
+    public int Id { get; set; }
+    public string MyProperty { get; set; }
+}
+
+public class MyDbContext : DbContext
+{
+    public DbSet<MyEntity> MyEntities { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        var myEntityConfiguration = modelBuilder.Entity<MyEntity>();
+        // Table-level configuration
+        myEntityConfiguration.IncludeInAnalyticsSync(includeAllColumns: true, hidden: false);
+        // Column-level override
+        myEntityConfiguration.Property(e => e.MyProperty).ConfigureAnalyticsSync(hidden: true);
+    }
+}
 ```
 
-In your application's entry point (e.g. `Program.cs`) first add services:
+The same configuration can also be set within classes implementing `IEntityTypeConfiguration`.
+
+#### 4. Create or update your `IDesignTimeDbContextFactory` implementation
+
+Ensure you have a reference to `Microsoft.EntityFrameworkCore.Design`.
+
+> [!IMPORTANT]
+> Ensure the `<PackageReference>` does _not_ have `PrivateAssets="all"` as this will prevent the library from working.
+
+You must have an implementation of `IDesignTimeDbContextFactory` that can be used at publish and deployment time to create an instance of your `DbContext` type.
+This is required for the library to be able to read the configuration of your `DbContext` and determine which tables and columns to sync.
+It cannot rely on any application configuration so must be self-contained and able to create an instance of the `DbContext` without any external dependencies.
+
+Below is an example `DbContext`, `IDesignTimeDbContextFactory` and service registration that uses user secrets to store the connection string for local development:
+
+```cs
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Design;
+using Microsoft.Extensions.Configuration;
+using Npgsql;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure;
+
+public class MyDbContext : DbContext
+{
+    public const string ConnectionName = "Postgres";
+
+    public MyDbContext(DbContextOptions<MyDbContext> options) : base(options)
+    {
+    }
+
+    public static void ConfigureOptions(DbContextOptionsBuilder optionsBuilder, string? connectionString = null)
+    {
+        if (connectionString != null)
+        {
+            optionsBuilder.UseNpgsql(connectionString, configureOptions);
+        }
+        else
+        {
+            optionsBuilder.UseNpgsql(configureOptions);
+        }
+
+        optionsBuilder
+            .UseSnakeCaseNamingConvention();
+    }
+}
+
+public class MyDbDesignTimeContextFactory : IDesignTimeDbContextFactory<MyDbContext>
+{
+    public MyDbContext CreateDbContext(string[] args)
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddUserSecrets<MyDesignTimeDbContextFactory>(optional: true)
+            .Build();
+
+        var connectionString = configuration.GetValue<string>($"ConnectionStrings:{MyDbContext.ConnectionName}");
+
+        var optionsBuilder = new DbContextOptionsBuilder<MyDbContext>();
+        MyDbContext.ConfigureOptions(optionsBuilder, connectionString);
+        return new MyDbContext(optionsBuilder);
+    }
+}
+
+public class Program
+{
+    //...
+    builder.Services.AddDbContext<MyDbContext>(options => MyDbContext.ConfigureOptions(options));
+}
+```
+
+#### 5. Verify configuration file is created at publish time
+
+If all is configured correctly, whenever any of the applications in your solution that reference the DbContext are published
+a `dfe-analytics` directory should be created in the output directory.
+This directory contains a `config.json` file with the configuration for your DbContext, including which tables and columns are configured to sync to BigQuery.
+
+
+## Capturing web request events in ASP.NET Core
+
+### Installation & configuration
+
+#### 1. Add DfeAnalytics.AspNetCore to your app
+
+Install the package into your ASP.NET Core application:
+```
+dotnet add package DfeAnalytics.AspNetCore
+```
+
+In your application's entry point (e.g. `Program.cs`), add services:
 
 ```cs
 builder.Services.AddDfeAnalytics()
@@ -44,49 +175,25 @@ then add the middleware:
 app.UseDfeAnalytics();
 ```
 
-It's recommended to place this middleware after any health check or Swagger middleware.
+It's recommended to place this middleware after any health check or Swagger middleware to prevent events being created for requests to those endpoints.
 
 
-### 2. Get an API JSON key
+#### 2. Configure the middleware
 
-Depending on how your app environments are setup, we recommend you use the
-service account created for the `development` environment on your localhost to
-test integration with BigQuery. This requires that your project is setup in
-Google Cloud as per the instructions above.
-
-1. Access the `development` service account you previously set up
-1. Go to the keys tab, click on "Add key" > "Create new key"
-1. Create a JSON private key. This file will be downloaded to your local system.
-
-The library expects to have this JSON key available within your application's `IConfiguration` under the `DfeAnalytics:CredentialsJson` key.
-For local development you should use User Secrets to store the key.
-For deployed environments you can set the `DfeAnalytics__CredentialsJson` environment variable.
-
-Alternatively you can configure a `BigQueryClient` directly:
-```cs
-builder.Services.AddDfeAnalytics(options =>
-{
-    options.BigQueryClient = ...;
-});
-```
-
-
-### 3. Configure the middleware
-
-As well as the `CredentialsJson` above, the library will look for the following additional BigQuery configuration:
+The library will look for the following entries in your application's configuration:
 
 | Configuration key          | Description                                                                                                                          |
 |----------------------------|--------------------------------------------------------------------------------------------------------------------------------------|
+| `DfeAnalytics:ProjectId`   | *REQUIRED* The Google Cloud project ID.                                                                                              |
 | `DfeAnalytics:DatasetId`   | *REQUIRED* The BigQuery dataset to write events to.                                                                                  |
 | `DfeAnalytics:Environment` | *REQUIRED* The environment name (populates the `environment` field in the event).                                                    |
 | `DfeAnalytics:Namespace`   | The application's namespace (populates the `namespace` field in the event.) By default the application's assembly name will be used. |
-| `DfeAnalytics:TableId`     | The BigQuery table name to write events to. Defaults to `events`.                                                                    |
 
 The configuration above can also be set in code:
 ```cs
 builder.Services.AddDfeAnalytics(options =>
 {
-    options.DatasetId = ...;
+    options.ProjectId = ...;
 });
 ```
 
@@ -95,8 +202,9 @@ The ASP.NET Core integration has the following configuration options:
 | Configuration key                         | Description                                                                                                                     |
 |-------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------|
 | `DfeAnalytics:AspNetCore:UserIdClaimType` | The claim type that contains the user's ID. Defaults to `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier`. |
+| `DfeAnalytics:AspNetCore:TableId`         | The BigQuery table name to write events to. Defaults to `events`.                                                               |
 
-The configuration about can also be set in code:
+The configuration above can also be set in code:
 ```cs
 builder.Services.AddDfeAnalytics()
     .AddAspNetCoreIntegration(options =>
@@ -106,9 +214,9 @@ builder.Services.AddDfeAnalytics()
 ```
 
 
-## Advanced usage
+### Advanced usage
 
-### Adding tags or data to the event
+#### Adding tags or data to the event
 
 ```cs
 using DfE.Analyics.AspNetCore;
@@ -119,7 +227,7 @@ httpContext.GetWebRequestEvent()?.AddData("key", "value1", "value2");
 ```
 
 
-### Ignoring the event
+#### Ignoring the event
 
 Should you want to prevent the library from sending an event to BigQuery for a particular given request you can call `IgnoreWebRequestEvent()` on the `HttpContext`:
 
@@ -152,3 +260,45 @@ public class MyEnricher : IWebRequestEventEnricher
 //...
 builder.Services.AddSingleton<IWebRequestEventEnricher, MyEnricher>();
 ```
+
+## Deployment
+
+Use the [DfE Analytics Terraform module](https://github.com/DFE-Digital/terraform-modules/tree/main/aks/dfe_analytics) for both web request and Airbyte integration.
+The module has several outputs that should be added to your application's configuration.
+
+```terraform
+module "dfe_analytics" {
+  source = "github.com/DFE-Digital/terraform-modules//aks/dfe_analytics"
+
+  #...
+}
+
+module "application_configuration" {
+  source = "./vendor/modules/aks//aks/job_configuration"
+
+  config_variables = {
+    DfeAnalytics__Environment = var.environment_name
+    DfeAnalytics__TableId     = module.dfe_analytics[0].bigquery_table_name
+    DfeAnalytics__DatasetId   = module.dfe_analytics[0].bigquery_dataset
+    DfeAnalytics__ProjectId   = module.dfe_analytics[0].bigquery_project_id
+  }
+}
+```
+
+For Airbyte integration, use the [Airbyte Terraform module](https://github.com/DFE-Digital/terraform-modules/tree/main/aks/airbyte)
+in addition to the DfE Analytics module.
+Ensure the following .NET-specific configuration is set:
+
+```terraform
+module "airbyte" {
+  source = "./vendor/modules/aks//aks/airbyte"
+
+  #...
+
+  is_rails_application         = false
+  is_dotnet_application        = true
+  dotnet_application_directory = "/App"
+}
+```
+
+`dotnet_application_directory` must be specified if your Dockerfile does not have a `WORKDIR` set (or the `WORKDIR` is different to your application's location).
