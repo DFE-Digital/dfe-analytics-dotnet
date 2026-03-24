@@ -116,6 +116,24 @@ public class AnalyticsDeployerTests
                                     "fieldPath": [ "DateOfBirth" ]
                                 }
                             ]
+                        },
+                        {
+                          "name": "airbyte_heartbeat",
+                            "syncMode": "full_refresh_overwrite",
+                            "cursorField": [],
+                            "primaryKey": [
+                                [
+                                    "id"
+                                ]
+                            ],
+                            "selectedFields": [
+                                {
+                                    "fieldPath": [ "id" ]
+                                },
+                                {
+                                    "fieldPath": [ "last_heartbeat" ]
+                                }
+                            ]
                         }
                     ]
                 }

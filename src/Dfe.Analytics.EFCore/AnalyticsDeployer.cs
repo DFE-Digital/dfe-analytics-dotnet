@@ -93,18 +93,36 @@ public class AnalyticsDeployer(
             [
                 new UpdateConnectionDetailsRequestConfiguration
                 {
-                    Streams = configuration.Tables.Select(t => new UpdateConnectionDetailsRequestConfigurationStream
-                    {
-                        Name = t.Name,
-                        SyncMode = "incremental_append",
-                        CursorField = ["_ab_cdc_lsn"],
-                        PrimaryKey = [t.PrimaryKey.ColumnNames],
-                        SelectedFields = _airbyteFieldNames.Concat(t.Columns.Select(c => c.Name))
-                            .Select(n => new UpdateConnectionDetailsRequestConfigurationStreamField
-                            {
-                                FieldPath = [n]
-                            })
-                    })
+                    Streams = configuration.Tables
+                        .Select(t => new UpdateConnectionDetailsRequestConfigurationStream
+                        {
+                            Name = t.Name,
+                            SyncMode = "incremental_append",
+                            CursorField = ["_ab_cdc_lsn"],
+                            PrimaryKey = [t.PrimaryKey.ColumnNames],
+                            SelectedFields = _airbyteFieldNames.Concat(t.Columns.Select(c => c.Name))
+                                .Select(n => new UpdateConnectionDetailsRequestConfigurationStreamField
+                                {
+                                    FieldPath = [n]
+                                })
+                        })
+                        .Append(new UpdateConnectionDetailsRequestConfigurationStream
+                        {
+                            Name = "airbyte_heartbeat",
+                            SyncMode = "full_refresh_overwrite",
+                            CursorField = [],
+                            PrimaryKey = [["id"]],
+                            SelectedFields = [
+                                new UpdateConnectionDetailsRequestConfigurationStreamField
+                                {
+                                    FieldPath = ["id"]
+                                },
+                                new UpdateConnectionDetailsRequestConfigurationStreamField
+                                {
+                                    FieldPath = ["last_heartbeat"]
+                                }
+                            ]
+                        })
                 }
             ]
         };
