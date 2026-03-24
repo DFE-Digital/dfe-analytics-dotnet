@@ -19,18 +19,50 @@ public class AnalyticsConfigurationProvider
 
         var tables = new List<TableSyncInfo>();
 
-        foreach (var entityType in dbContext.Model.GetEntityTypes())
+        foreach (var rootEntityType in dbContext.Model.GetEntityTypes())
         {
-            var tableSyncMetadata = entityType.FindAnnotation(AnnotationKeys.TableAnalyticsSyncMetadata)?.Value as TableSyncMetadata;
-
-            if (tableSyncMetadata is null)
+            // Only consider root entity types in the inheritance hierarchy to avoid duplicate table configurations for derived types sharing the same table;
+            // the columns from all derived types will be covered below
+            if (rootEntityType.BaseType is not null)
             {
                 continue;
             }
 
-            var tableName = entityType.GetTableName()!;
-            var primaryKeySyncInfo = GetPrimaryKey(entityType);
-            var columnSyncInfos = GetColumns(entityType, tableSyncMetadata);
+            var entityTypes = rootEntityType.GetDerivedTypesInclusive().ToArray();
+
+            // We don't currently support more than one level of inheritance
+            if (entityTypes.Any(e => e.BaseType?.BaseType is not null))
+            {
+                throw new NotSupportedException(
+                    $"Entity '{rootEntityType.Name}' has more than one level of inheritance, which is not currently supported.");
+            }
+
+            var rootTableSyncMetadata = rootEntityType.FindAnnotation(AnnotationKeys.TableAnalyticsSyncMetadata)?.Value as TableSyncMetadata;
+
+            if (rootTableSyncMetadata is null)
+            {
+                if (entityTypes.Any(e => e.GetAnnotations().Any(a => a.Name == AnnotationKeys.TableAnalyticsSyncMetadata)))
+                {
+                    throw new InvalidOperationException(
+                        $"Entity '{rootEntityType.Name}' does not have table sync metadata, but one or more of its derived types do." +
+                        $" Table sync metadata must be defined on the root entity type in the inheritance hierarchy.");
+                }
+
+                continue;
+            }
+
+            var tableName = rootEntityType.GetTableName()!;
+            var primaryKeySyncInfo = GetPrimaryKey(rootEntityType);
+
+            var columnSyncInfos = entityTypes
+                .Select(et => new
+                {
+                    EntityType = et,
+                    TableSyncMetadata = et.FindAnnotation(AnnotationKeys.TableAnalyticsSyncMetadata)?.Value as TableSyncMetadata
+                })
+                .Where(t => t.TableSyncMetadata is not null)
+                .SelectMany(t => GetColumns(t.EntityType, t.TableSyncMetadata!))
+                .ToArray();
 
             tables.Add(new TableSyncInfo
             {
@@ -72,7 +104,7 @@ public class AnalyticsConfigurationProvider
     {
         var columnSyncInfos = new List<ColumnSyncInfo>();
 
-        foreach (var property in entityType.GetProperties())
+        foreach (var property in entityType.GetDeclaredProperties())
         {
             var columnName = property.GetColumnName();
             var columnSyncMetadata = property.FindAnnotation(AnnotationKeys.ColumnAnalyticsSyncMetadata)?.Value as ColumnSyncMetadata;

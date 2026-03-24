@@ -20,6 +20,34 @@ public class AnalyticsConfigurationProviderTests
             configuration.Tables,
             table =>
             {
+                Assert.Equal("BaseEntity", table.Name);
+                Assert.Equal(["Id"], table.PrimaryKey.ColumnNames);
+                Assert.Collection(
+                    table.Columns.OrderBy(c => c.Name),
+                    column =>
+                    {
+                        Assert.Equal("BaseProperty", column.Name);
+                        Assert.False(column.Hidden);
+                    },
+                    column =>
+                    {
+                        Assert.Equal("DerivedProperty2", column.Name);
+                        Assert.False(column.Hidden);
+                    },
+                    column =>
+                    {
+                        Assert.Equal("Discriminator", column.Name);
+                        Assert.False(column.Hidden);
+                    },
+                    column =>
+                    {
+                        Assert.Equal("Id", column.Name);
+                        Assert.False(column.Hidden);
+                    }
+                );
+            },
+            table =>
+            {
                 Assert.Equal("TestEntity", table.Name);
                 Assert.Equal(["TestEntityId"], table.PrimaryKey.ColumnNames);
                 Assert.Collection(
