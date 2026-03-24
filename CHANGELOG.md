@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+Adds `airbyte_heartbeat` table to streams configuration.
+
 ## 0.4.1
 
 Fixes tooling to work with .NET 10.
