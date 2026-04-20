@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+Handle job already running when deploying new configuration.
+
 ## 0.4.2
 
 Adds `airbyte_heartbeat` table to streams configuration.
