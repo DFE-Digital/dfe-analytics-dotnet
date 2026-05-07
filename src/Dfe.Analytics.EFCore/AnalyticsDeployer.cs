@@ -137,13 +137,7 @@ public class AnalyticsDeployer(
         CancellationToken cancellationToken = default)
     {
         var triggerJobResponse = await WithProgressReportingAsync(
-            () => airbyteApiClient.TriggerJobAsync(
-                new TriggerJobRequest
-                {
-                    ConnectionId = connectionId,
-                    JobType = JobType.Sync
-                },
-                cancellationToken),
+            TriggerJobAsync,
             progressReporter,
             "  Creating Airbyte sync job");
 
@@ -153,6 +147,33 @@ public class AnalyticsDeployer(
             WaitForCompletionAsync,
             progressReporter,
             "  Waiting for job to complete");
+
+        async Task<TriggerJobResponse> TriggerJobAsync()
+        {
+            TriggerJobResponse? jobResponse;
+
+            do
+            {
+                jobResponse = await airbyteApiClient.TryTriggerJobAsync(
+                    new TriggerJobRequest
+                    {
+                        ConnectionId = connectionId,
+                        JobType = JobType.Sync
+                    },
+                    cancellationToken);
+
+                if (jobResponse is not null)
+                {
+                    break;
+                }
+
+                // Job is already running; back off and try again
+                await Task.Delay(15000, cancellationToken);
+            }
+            while (jobResponse is null);
+
+            return jobResponse;
+        }
 
         async Task WaitForCompletionAsync()
         {

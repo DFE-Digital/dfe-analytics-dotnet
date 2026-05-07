@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -41,7 +42,7 @@ public class AirbyteApiClient(HttpClient httpClient)
         return (await response.Content.ReadFromJsonAsync<GetJobStatusResponse>(_serializerOptions, cancellationToken))!;
     }
 
-    public async Task<TriggerJobResponse> TriggerJobAsync(TriggerJobRequest request, CancellationToken cancellationToken = default)
+    public async Task<TriggerJobResponse?> TryTriggerJobAsync(TriggerJobRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -51,6 +52,13 @@ public class AirbyteApiClient(HttpClient httpClient)
             "api/public/v1/jobs",
             content,
             cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.Conflict &&
+            await response.Content.ReadAsStringAsync(cancellationToken) is string contentString &&
+            contentString.Contains("A sync is already running", StringComparison.Ordinal))
+        {
+            return null;
+        }
 
         await response.EnsureSuccessStatusCodeWithContentAsync();
 
