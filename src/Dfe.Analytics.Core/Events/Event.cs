@@ -90,9 +90,14 @@ public class Event
     public string? ResponseStatus { get; set; }
 
     /// <summary>
-    /// Gets the <c>data</c> field.
+    /// Gets the <c>DATA</c> field.
     /// </summary>
     public IDictionary<string, List<string>> Data { get; } = new Dictionary<string, List<string>>();
+
+    /// <summary>
+    /// Gets the <c>hidden_DATA</c> field.
+    /// </summary>
+    public IDictionary<string, List<string>> HiddenData { get; } = new Dictionary<string, List<string>>();
 
     /// <summary>
     /// Gets or sets the <c>entity_table_name</c> field.
@@ -143,6 +148,42 @@ public class Event
         ArgumentNullException.ThrowIfNull(values);
 
         AddData(key, (IEnumerable<string>)values);
+    }
+
+    /// <summary>
+    /// Adds an item to the <see cref="HiddenData"/> bundle with a single value.
+    /// </summary>
+    /// <exception cref="ArgumentNullException"><paramref name="key"/> or <paramref name="value"/> is <see langword="null"/>.</exception>
+    public void AddHiddenData(string key, string value)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+        ArgumentNullException.ThrowIfNull(value);
+
+        AddHiddenData(key, [value]);
+    }
+
+    /// <summary>
+    /// Adds an item to the <see cref="HiddenData"/> bundle with multiple values.
+    /// </summary>
+    /// <exception cref="ArgumentNullException"><paramref name="key"/> or <paramref name="values"/> is <see langword="null"/>.</exception>
+    public void AddHiddenData(string key, IEnumerable<string> values)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+        ArgumentNullException.ThrowIfNull(values);
+
+        HiddenData.Add(key, [.. values]);
+    }
+
+    /// <summary>
+    /// Adds an item to the <see cref="HiddenData"/> bundle with multiple values.
+    /// </summary>
+    /// <exception cref="ArgumentNullException"><paramref name="key"/> or <paramref name="values"/> is <see langword="null"/>.</exception>
+    public void AddHiddenData(string key, params string[] values)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+        ArgumentNullException.ThrowIfNull(values);
+
+        AddHiddenData(key, (IEnumerable<string>)values);
     }
 
     /// <summary>
@@ -203,8 +244,16 @@ public class Event
             { "response_content_type", ResponseContentType },
             { "response_status", ResponseStatus },
             {
-                "data",
+                "DATA",
                 Data.Select(kvp => new BigQueryInsertRow()
+                {
+                    { "key", kvp.Key },
+                    { "value", kvp.Value }
+                }).ToArray()
+            },
+            {
+                "hidden_DATA",
+                HiddenData.Select(kvp => new BigQueryInsertRow()
                 {
                     { "key", kvp.Key },
                     { "value", kvp.Value }
