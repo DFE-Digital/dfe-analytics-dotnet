@@ -33,6 +33,11 @@ dotnet add package DfeAnalytics.EFCore
 > [!IMPORTANT]
 > This must be added to the project that contains your `DbContext` class.
 
+Ensure you have a reference to `Microsoft.EntityFrameworkCore.Design`.
+
+> [!IMPORTANT]
+> Ensure the `<PackageReference>` does _not_ have `PrivateAssets="all"` as this will prevent the library from working.
+
 #### 2. Specify the DbContext type in `Directory.Build.props`
 
 Add a `Directory.Build.props` file (or update your existing one) to include the full name of your `DbContext` type and its containing assembly:
@@ -75,76 +80,9 @@ public class MyDbContext : DbContext
 }
 ```
 
-The same configuration can also be set within classes implementing `IEntityTypeConfiguration`.
+The same configuration can also be set within classes implementing `IEntityTypeConfiguration<T>`.
 
-#### 4. Create or update your `IDesignTimeDbContextFactory` implementation
-
-Ensure you have a reference to `Microsoft.EntityFrameworkCore.Design`.
-
-> [!IMPORTANT]
-> Ensure the `<PackageReference>` does _not_ have `PrivateAssets="all"` as this will prevent the library from working.
-
-You must have an implementation of `IDesignTimeDbContextFactory` that can be used at publish and deployment time to create an instance of your `DbContext` type.
-This is required for the library to be able to read the configuration of your `DbContext` and determine which tables and columns to sync.
-It cannot rely on any application configuration so must be self-contained and able to create an instance of the `DbContext` without any external dependencies.
-
-Below is an example `DbContext`, `IDesignTimeDbContextFactory` and service registration that uses user secrets to store the connection string for local development:
-
-```cs
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Design;
-using Microsoft.Extensions.Configuration;
-using Npgsql;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure;
-
-public class MyDbContext : DbContext
-{
-    public const string ConnectionName = "Postgres";
-
-    public MyDbContext(DbContextOptions<MyDbContext> options) : base(options)
-    {
-    }
-
-    public static void ConfigureOptions(DbContextOptionsBuilder optionsBuilder, string? connectionString = null)
-    {
-        if (connectionString != null)
-        {
-            optionsBuilder.UseNpgsql(connectionString, configureOptions);
-        }
-        else
-        {
-            optionsBuilder.UseNpgsql(configureOptions);
-        }
-
-        optionsBuilder
-            .UseSnakeCaseNamingConvention();
-    }
-}
-
-public class MyDbDesignTimeContextFactory : IDesignTimeDbContextFactory<MyDbContext>
-{
-    public MyDbContext CreateDbContext(string[] args)
-    {
-        var configuration = new ConfigurationBuilder()
-            .AddUserSecrets<MyDesignTimeDbContextFactory>(optional: true)
-            .Build();
-
-        var connectionString = configuration.GetValue<string>($"ConnectionStrings:{MyDbContext.ConnectionName}");
-
-        var optionsBuilder = new DbContextOptionsBuilder<MyDbContext>();
-        MyDbContext.ConfigureOptions(optionsBuilder, connectionString);
-        return new MyDbContext(optionsBuilder);
-    }
-}
-
-public class Program
-{
-    //...
-    builder.Services.AddDbContext<MyDbContext>(options => MyDbContext.ConfigureOptions(options));
-}
-```
-
-#### 5. Verify configuration file is created at publish time
+#### 4. Verify configuration file is created at publish time
 
 If all is configured correctly, whenever any of the applications in your solution that reference the DbContext are published
 a `dfe-analytics` directory should be created in the output directory.
