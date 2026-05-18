@@ -153,7 +153,7 @@ public class IntegrationTests : IClassFixture<IntegrationTestsApplicationFactory
             },
             field =>
             {
-                Assert.Equal("data", field.Key);
+                Assert.Equal("DATA", field.Key);
                 Assert.Collection(
                     Assert.IsAssignableFrom<IEnumerable<BigQueryInsertRow>>(field.Value),
                     row =>
@@ -199,6 +199,42 @@ public class IntegrationTests : IClassFixture<IntegrationTestsApplicationFactory
                             {
                                 Assert.Equal("value", field.Key);
                                 Assert.Collection(Assert.IsAssignableFrom<IEnumerable<string>>(field.Value), v => Assert.Equal("42", v));
+                            });
+                    });
+            },
+            field =>
+            {
+                Assert.Equal("hidden_DATA", field.Key);
+                Assert.Collection(
+                    Assert.IsAssignableFrom<IEnumerable<BigQueryInsertRow>>(field.Value),
+                    row =>
+                    {
+                        Assert.Collection(
+                            row.Cast<KeyValuePair<string, object>>()!,
+                            field =>
+                            {
+                                Assert.Equal("key", field.Key);
+                                Assert.Equal("hidden-data-key1", field.Value);
+                            },
+                            field =>
+                            {
+                                Assert.Equal("value", field.Key);
+                                Assert.Collection(Assert.IsAssignableFrom<IEnumerable<string>>(field.Value), v => Assert.Equal("hidden-data-value1", v));
+                            });
+                    },
+                    row =>
+                    {
+                        Assert.Collection(
+                            row.Cast<KeyValuePair<string, object>>()!,
+                            field =>
+                            {
+                                Assert.Equal("key", field.Key);
+                                Assert.Equal("hidden-data-key2", field.Value);
+                            },
+                            field =>
+                            {
+                                Assert.Equal("value", field.Key);
+                                Assert.Collection(Assert.IsAssignableFrom<IEnumerable<string>>(field.Value), v => Assert.Equal("hidden-data-value2", v));
                             });
                     });
             },
@@ -305,6 +341,8 @@ public class IntegrationTestsStartup
                 var @event = ctx.GetWebRequestEvent();
                 @event?.AddData("data-key1", "data-value1");
                 @event?.AddData("data-key2", "data-value2");
+                @event?.AddHiddenData("hidden-data-key1", "hidden-data-value1");
+                @event?.AddHiddenData("hidden-data-key2", "hidden-data-value2");
                 @event?.AddTags("tag1", "tag2");
 
                 ctx.Response.ContentType = "text/plain";

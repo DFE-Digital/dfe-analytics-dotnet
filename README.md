@@ -162,6 +162,7 @@ using DfE.Analyics.AspNetCore;
 //...
 httpContext.GetWebRequestEvent()?.AddTag("tag1", "tag2");
 httpContext.GetWebRequestEvent()?.AddData("key", "value1", "value2");
+httpContext.GetWebRequestEvent()?.AddHiddenData("key", "hidden-value1", "hidden-value2");
 ```
 
 
