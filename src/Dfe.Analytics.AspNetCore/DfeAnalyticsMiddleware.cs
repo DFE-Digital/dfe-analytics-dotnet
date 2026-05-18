@@ -12,11 +12,14 @@ using Microsoft.Extensions.Options;
 namespace Dfe.Analytics.AspNetCore;
 
 /// <summary>
-/// Middleware to write request and response information Google Big Query.
+/// Middleware to write request and response information Google BigQuery.
 /// </summary>
 public class DfeAnalyticsMiddleware
 {
+    private const string EventType = "web_request";
+
     private readonly RequestDelegate _next;
+    private readonly IEventFactory _eventFactory;
     private readonly IEventSender _eventSender;
     private readonly IEnumerable<IWebRequestEventEnricher> _webRequestEventEnrichers;
     private readonly ILogger<DfeAnalyticsMiddleware> _logger;
@@ -25,6 +28,7 @@ public class DfeAnalyticsMiddleware
     /// Creates a new <see cref="DfeAnalyticsMiddleware"/>.
     /// </summary>
     /// <param name="next">The <see cref="RequestDelegate"/> representing the next middleware in the pipeline.</param>
+    /// <param name="eventFactory">The <see cref="IEventFactory"/> to create events with.</param>
     /// <param name="eventSender">The <see cref="IEventSender"/> to send events with.</param>
     /// <param name="timeProvider">The <see cref="TimeProvider"/>.</param>
     /// <param name="optionsAccessor">The configuration options.</param>
@@ -33,6 +37,7 @@ public class DfeAnalyticsMiddleware
     /// <param name="logger">The logger instance.</param>
     public DfeAnalyticsMiddleware(
         RequestDelegate next,
+        IEventFactory eventFactory,
         IEventSender eventSender,
         TimeProvider timeProvider,
         IOptions<DfeAnalyticsOptions> optionsAccessor,
@@ -41,6 +46,7 @@ public class DfeAnalyticsMiddleware
         ILogger<DfeAnalyticsMiddleware> logger)
     {
         ArgumentNullException.ThrowIfNull(next);
+        ArgumentNullException.ThrowIfNull(eventFactory);
         ArgumentNullException.ThrowIfNull(eventSender);
         ArgumentNullException.ThrowIfNull(timeProvider);
         ArgumentNullException.ThrowIfNull(optionsAccessor);
@@ -49,6 +55,7 @@ public class DfeAnalyticsMiddleware
         ArgumentNullException.ThrowIfNull(logger);
 
         _next = next;
+        _eventFactory = eventFactory;
         _eventSender = eventSender;
         TimeProvider = timeProvider;
         _webRequestEventEnrichers = webRequestEventEnrichers;
@@ -154,12 +161,7 @@ public class DfeAnalyticsMiddleware
     {
         ValidateOptions();
 
-        return new()
-        {
-            OccurredAt = TimeProvider.GetUtcNow().UtcDateTime,
-            Environment = AspNetCoreOptions.Environment!,
-            Namespace = AspNetCoreOptions.Namespace
-        };
+        return _eventFactory.CreateEvent(EventType);
     }
 
     /// <summary>

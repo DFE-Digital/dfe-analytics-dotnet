@@ -1,7 +1,6 @@
-using Dfe.Analytics.Events;
 using Microsoft.Extensions.Options;
 
-namespace Dfe.Analytics;
+namespace Dfe.Analytics.Events;
 
 internal class DefaultEventSender(
     IOptions<DfeAnalyticsOptions> coreOptionsAccessor,

@@ -1,6 +1,4 @@
-using Dfe.Analytics.Events;
-
-namespace Dfe.Analytics;
+namespace Dfe.Analytics.Events;
 
 /// <summary>
 /// Represents a type that can send an <see cref="Event"/> to BigQuery.

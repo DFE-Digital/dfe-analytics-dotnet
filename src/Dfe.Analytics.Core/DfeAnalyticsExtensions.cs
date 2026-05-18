@@ -1,3 +1,4 @@
+using Dfe.Analytics.Events;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
@@ -39,6 +40,7 @@ public static class DfeAnalyticsExtensions
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DfeAnalyticsOptions>, DfeAnalyticsConfigureOptions>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IPostConfigureOptions<DfeAnalyticsOptions>, DfeAnalyticsConfigureOptions>());
         services.TryAddSingleton(_ => TimeProvider.System);
+        services.TryAddTransient<IEventFactory, DefaultEventFactory>();
         services.TryAddTransient<IEventSender, DefaultEventSender>();
         services.Configure(setupAction);
 
