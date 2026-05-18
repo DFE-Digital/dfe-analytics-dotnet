@@ -8,30 +8,29 @@ namespace Dfe.Analytics.AspNetCore;
 /// </summary>
 public sealed class EnrichWebRequestEventContext
 {
-    private readonly WebRequestEventFeature _feature;
+    private readonly Event _event;
 
     /// <summary>
     /// Initializes a new instance of <see cref="EnrichWebRequestEventContext"/>.
     /// </summary>
-    /// <param name="feature">The <see cref="WebRequestEventFeature"/>.</param>
+    /// <param name="event">The <see cref="Event"/>.</param>
     /// <param name="httpContext">The <see cref="HttpContext"/>.</param>
-    public EnrichWebRequestEventContext(WebRequestEventFeature feature, HttpContext httpContext)
+    public EnrichWebRequestEventContext(Event @event, HttpContext httpContext)
     {
-        ArgumentNullException.ThrowIfNull(feature);
+        ArgumentNullException.ThrowIfNull(@event);
         ArgumentNullException.ThrowIfNull(httpContext);
 
-        _feature = feature;
+        _event = @event;
         HttpContext = httpContext;
     }
 
-    /// <inheritdoc cref="WebRequestEventFeature.Event"/>
-    public Event Event => _feature.Event;
+    /// <summary>
+    /// The <see cref="Event"/>.
+    /// </summary>
+    public Event Event => _event;
 
     /// <summary>
     /// The <see cref="HttpContext"/> for the request.
     /// </summary>
     public HttpContext HttpContext { get; }
-
-    /// <inheritdoc cref="WebRequestEventFeature.IgnoreEvent"/>
-    public void IgnoreEvent() => _feature.IgnoreEvent();
 }

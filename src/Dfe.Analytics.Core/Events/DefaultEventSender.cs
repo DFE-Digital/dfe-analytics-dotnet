@@ -3,10 +3,13 @@ using Microsoft.Extensions.Options;
 namespace Dfe.Analytics.Events;
 
 internal class DefaultEventSender(
+    IEventFactory eventFactory,
     IOptions<DfeAnalyticsOptions> coreOptionsAccessor,
     IOptions<DfeAnalyticsEventsOptions> eventsOptionsAccessor) :
     IEventSender
 {
+    public IEventFactory EventFactory => eventFactory;
+
     public Task SendEventAsync(Event @event)
     {
         var coreOptions = coreOptionsAccessor.Value;

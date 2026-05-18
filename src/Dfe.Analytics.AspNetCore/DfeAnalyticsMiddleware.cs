@@ -1,12 +1,6 @@
-using System.Globalization;
-using System.Threading.RateLimiting;
 using Dfe.Analytics.Events;
 using Google.Cloud.BigQuery.V2;
-using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.Extensions;
-using Microsoft.AspNetCore.WebUtilities;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Dfe.Analytics.AspNetCore;
@@ -21,8 +15,6 @@ public class DfeAnalyticsMiddleware
     private readonly RequestDelegate _next;
     private readonly IEventFactory _eventFactory;
     private readonly IEventSender _eventSender;
-    private readonly IEnumerable<IWebRequestEventEnricher> _webRequestEventEnrichers;
-    private readonly ILogger<DfeAnalyticsMiddleware> _logger;
 
     /// <summary>
     /// Creates a new <see cref="DfeAnalyticsMiddleware"/>.
@@ -33,17 +25,13 @@ public class DfeAnalyticsMiddleware
     /// <param name="timeProvider">The <see cref="TimeProvider"/>.</param>
     /// <param name="optionsAccessor">The configuration options.</param>
     /// <param name="aspNetCoreOptionsAccessor">The middleware configuration options.</param>
-    /// <param name="webRequestEventEnrichers">The collection of <see cref="IWebRequestEventEnricher"/>.</param>
-    /// <param name="logger">The logger instance.</param>
     public DfeAnalyticsMiddleware(
         RequestDelegate next,
         IEventFactory eventFactory,
         IEventSender eventSender,
         TimeProvider timeProvider,
         IOptions<DfeAnalyticsOptions> optionsAccessor,
-        IOptions<DfeAnalyticsAspNetCoreOptions> aspNetCoreOptionsAccessor,
-        IEnumerable<IWebRequestEventEnricher> webRequestEventEnrichers,
-        ILogger<DfeAnalyticsMiddleware> logger)
+        IOptions<DfeAnalyticsAspNetCoreOptions> aspNetCoreOptionsAccessor)
     {
         ArgumentNullException.ThrowIfNull(next);
         ArgumentNullException.ThrowIfNull(eventFactory);
@@ -51,17 +39,13 @@ public class DfeAnalyticsMiddleware
         ArgumentNullException.ThrowIfNull(timeProvider);
         ArgumentNullException.ThrowIfNull(optionsAccessor);
         ArgumentNullException.ThrowIfNull(aspNetCoreOptionsAccessor);
-        ArgumentNullException.ThrowIfNull(webRequestEventEnrichers);
-        ArgumentNullException.ThrowIfNull(logger);
 
         _next = next;
         _eventFactory = eventFactory;
         _eventSender = eventSender;
         TimeProvider = timeProvider;
-        _webRequestEventEnrichers = webRequestEventEnrichers;
         Options = optionsAccessor.Value;
         AspNetCoreOptions = aspNetCoreOptionsAccessor.Value;
-        _logger = logger;
     }
 
     /// <summary>
@@ -90,156 +74,11 @@ public class DfeAnalyticsMiddleware
 
         ValidateOptions();
 
-        var @event = InitializeEvent(context);
+        var @event = _eventFactory.CreateEvent(EventType);
         context.Features.Set(new WebRequestEventFeature(@event));
-
-        PopulateEventFromRequest(@event, context);
-
-        context.Response.OnCompleted(async () =>
-        {
-            RateLimitLease? rateLimitLease = null;
-            try
-            {
-                var feature = context.Features.Get<WebRequestEventFeature>();
-
-                if (feature is null || feature.IsEventIgnored || feature.EventSent || AspNetCoreOptions.RequestFilter?.Invoke(context) == false)
-                {
-                    return;
-                }
-
-                var @event = feature.Event;
-                PopulateEventFromResponse(@event, context);
-
-                var enrichContext = new EnrichWebRequestEventContext(feature, context);
-                foreach (var enricher in _webRequestEventEnrichers)
-                {
-                    await enricher.EnrichEventAsync(enrichContext);
-
-                    if (feature.IsEventIgnored)
-                    {
-                        return;
-                    }
-                }
-
-                if (AspNetCoreOptions.RateLimiter is not null)
-                {
-                    rateLimitLease = await AspNetCoreOptions.RateLimiter.AcquireAsync(context);
-
-                    if (!rateLimitLease.IsAcquired)
-                    {
-                        _logger.LogDebug("Event for {RequestAddress} was dropped due to an exceeded rate limit", context.Request.GetEncodedPathAndQuery());
-                        return;
-                    }
-                }
-
-                await _eventSender.SendEventAsync(@event);
-
-                feature.MarkEventSent();
-
-                _logger.LogInformation("Sent {EventType} event to Big Query for {RequestAddress}", @event.EventType, context.Request.GetEncodedPathAndQuery());
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed sending {EventType} event to BigQuery table for {RequestAddress}", @event.EventType, context.Request.GetEncodedPathAndQuery());
-                throw;
-            }
-            finally
-            {
-                rateLimitLease?.Dispose();
-            }
-        });
+        await _eventSender.SendEventAsync(@event);
 
         await _next(context);
-    }
-
-    /// <summary>
-    /// Initializes a new event for this request.
-    /// </summary>
-    /// <param name="context">The current <see cref="HttpContext"/>.</param>
-    /// <returns>The initialized event.</returns>
-    protected virtual Event InitializeEvent(HttpContext context)
-    {
-        ValidateOptions();
-
-        return _eventFactory.CreateEvent(EventType);
-    }
-
-    /// <summary>
-    /// Populates the request properties on <paramref name="event"/> with the information in <paramref name="context"/>.
-    /// </summary>
-    /// <param name="event">The event to populate.</param>
-    /// <param name="context">The current <see cref="HttpContext"/>.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="context"/> or <paramref name="event"/> is <see langword="null"/>.</exception>
-    protected virtual void PopulateEventFromRequest(Event @event, HttpContext context)
-    {
-        ArgumentNullException.ThrowIfNull(@event);
-        ArgumentNullException.ThrowIfNull(context);
-
-        ValidateOptions();
-        @event.AnonymizedUserAgentAndIp = GetAnonymizedUserAgentAndIp(context);
-        @event.RequestId = context.TraceIdentifier;
-        @event.RequestMethod = context.Request.Method;
-        @event.RequestPath = context.Request.PathBase + context.Request.Path;
-        @event.RequestQuery = context.Request.Query
-            .ToDictionary(q => q.Key, q => q.Value.Where(v => v is not null).Select(v => v!).ToArray());
-        @event.RequestReferer = context.Request.Headers.Referer;
-        @event.RequestUserAgent = context.Request.Headers.UserAgent;
-        @event.UserId = AspNetCoreOptions.GetUserIdFromRequest?.Invoke(context);
-
-        if (AspNetCoreOptions.RestoreOriginalPathAndQueryString)
-        {
-            if (context.Features.Get<IExceptionHandlerFeature>() is IExceptionHandlerFeature exceptionHandlerFeature)
-            {
-                @event.RequestPath = context.Request.PathBase + exceptionHandlerFeature.Path;
-            }
-            else if (context.Features.Get<IStatusCodeReExecuteFeature>() is IStatusCodeReExecuteFeature statusCodeReExecuteFeature)
-            {
-                @event.RequestPath = statusCodeReExecuteFeature.OriginalPathBase + statusCodeReExecuteFeature.OriginalPath;
-                @event.RequestQuery = QueryHelpers.ParseQuery(statusCodeReExecuteFeature.OriginalQueryString)
-                    .ToDictionary(q => q.Key, q => q.Value.Where(v => v is not null).Select(v => v!).ToArray());
-            }
-        }
-    }
-
-    /// <summary>
-    /// Gets an anonymized form of the client's IP address and user agent.
-    /// </summary>
-    /// <remarks>
-    /// Returns <see langword="null"/> if <see cref="ConnectionInfo.RemoteIpAddress"/> on <paramref name="context"/> is <see langword="null"/>.
-    /// </remarks>
-    /// <param name="context">The current <see cref="HttpContext"/>.</param>
-    /// <returns>A <see cref="string"/> with an anonymized form of the client's IP address and user agent.</returns>
-    protected virtual string? GetAnonymizedUserAgentAndIp(HttpContext context)
-    {
-        ArgumentNullException.ThrowIfNull(context);
-
-        return context.Connection.RemoteIpAddress is not null ? Event.Anonymize(context.Request.Headers.UserAgent + context.Connection.RemoteIpAddress) : null;
-    }
-
-    /// <summary>
-    /// Populates the response properties on <paramref name="event"/> with the information in <paramref name="context"/>.
-    /// </summary>
-    /// <param name="event">The event to populate.</param>
-    /// <param name="context">The current <see cref="HttpContext"/>.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="context"/> or <paramref name="event"/> is <see langword="null"/>.</exception>
-    protected virtual void PopulateEventFromResponse(Event @event, HttpContext context)
-    {
-        ArgumentNullException.ThrowIfNull(@event);
-        ArgumentNullException.ThrowIfNull(context);
-
-        @event.ResponseContentType = context.Response.ContentType;
-        @event.ResponseStatus = context.Response.StatusCode.ToString(CultureInfo.InvariantCulture);
-
-        if (AspNetCoreOptions.RestoreOriginalStatusCode &&
-            context.Features.Get<IStatusCodeReExecuteFeature>() is IStatusCodeReExecuteFeature statusCodeReExecuteFeature)
-        {
-            @event.ResponseStatus = statusCodeReExecuteFeature.OriginalStatusCode.ToString(CultureInfo.InvariantCulture);
-        }
-
-        // We may not have been able to get the user the first time around (depending on the order middleware is registered);
-        // if UserId is not set then try to get it now.
-
-        @event.UserId ??= AspNetCoreOptions.GetUserIdFromRequest?.Invoke(context);
     }
 
     internal void ValidateOptions()

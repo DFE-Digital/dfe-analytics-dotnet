@@ -39,6 +39,10 @@ public static class AspNetCoreExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(setupAction);
 
+        builder.Services.AddHttpContextAccessor();
+        builder.Services.AddTransient<AspNetCoreEventSender>();
+        builder.Services.AddTransient<IEventFactory>(s => s.GetRequiredService<AspNetCoreEventSender>());
+        builder.Services.AddTransient<IEventSender>(s => s.GetRequiredService<AspNetCoreEventSender>());
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DfeAnalyticsAspNetCoreOptions>, DfeAnalyticsAspNetCoreConfigureOptions>());
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DfeAnalyticsAspNetCoreOptions>, DfeAnalyticsEventsConfigureOptions>());
         builder.Services.AddTransient<IOptions<DfeAnalyticsEventsOptions>>(s => s.GetRequiredService<IOptions<DfeAnalyticsAspNetCoreOptions>>());
