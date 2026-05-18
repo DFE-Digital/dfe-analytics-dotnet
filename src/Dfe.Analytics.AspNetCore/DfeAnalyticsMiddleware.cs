@@ -17,6 +17,7 @@ namespace Dfe.Analytics.AspNetCore;
 public class DfeAnalyticsMiddleware
 {
     private readonly RequestDelegate _next;
+    private readonly IEventSender _eventSender;
     private readonly IEnumerable<IWebRequestEventEnricher> _webRequestEventEnrichers;
     private readonly ILogger<DfeAnalyticsMiddleware> _logger;
 
@@ -24,6 +25,7 @@ public class DfeAnalyticsMiddleware
     /// Creates a new <see cref="DfeAnalyticsMiddleware"/>.
     /// </summary>
     /// <param name="next">The <see cref="RequestDelegate"/> representing the next middleware in the pipeline.</param>
+    /// <param name="eventSender">The <see cref="IEventSender"/> to send events with.</param>
     /// <param name="timeProvider">The <see cref="TimeProvider"/>.</param>
     /// <param name="optionsAccessor">The configuration options.</param>
     /// <param name="aspNetCoreOptionsAccessor">The middleware configuration options.</param>
@@ -31,6 +33,7 @@ public class DfeAnalyticsMiddleware
     /// <param name="logger">The logger instance.</param>
     public DfeAnalyticsMiddleware(
         RequestDelegate next,
+        IEventSender eventSender,
         TimeProvider timeProvider,
         IOptions<DfeAnalyticsOptions> optionsAccessor,
         IOptions<DfeAnalyticsAspNetCoreOptions> aspNetCoreOptionsAccessor,
@@ -38,6 +41,7 @@ public class DfeAnalyticsMiddleware
         ILogger<DfeAnalyticsMiddleware> logger)
     {
         ArgumentNullException.ThrowIfNull(next);
+        ArgumentNullException.ThrowIfNull(eventSender);
         ArgumentNullException.ThrowIfNull(timeProvider);
         ArgumentNullException.ThrowIfNull(optionsAccessor);
         ArgumentNullException.ThrowIfNull(aspNetCoreOptionsAccessor);
@@ -45,6 +49,7 @@ public class DfeAnalyticsMiddleware
         ArgumentNullException.ThrowIfNull(logger);
 
         _next = next;
+        _eventSender = eventSender;
         TimeProvider = timeProvider;
         _webRequestEventEnrichers = webRequestEventEnrichers;
         Options = optionsAccessor.Value;
@@ -120,14 +125,7 @@ public class DfeAnalyticsMiddleware
                     }
                 }
 
-                var bigQueryClient = Options.BigQueryClient!;
-
-                var row = @event.ToBigQueryInsertRow();
-
-                await bigQueryClient.InsertRowAsync(
-                    Options.DatasetId,
-                    AspNetCoreOptions.TableId,
-                    row);
+                await _eventSender.SendEventAsync(@event);
 
                 feature.MarkEventSent();
 

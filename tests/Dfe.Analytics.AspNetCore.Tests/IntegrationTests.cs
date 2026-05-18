@@ -17,7 +17,7 @@ public class IntegrationTests : IClassFixture<IntegrationTestsApplicationFactory
     }
 
     [Fact]
-    public async Task WritesEventToBigQuery()
+    public async Task SendsEventToBigQuery()
     {
         using var waitHandle = new ManualResetEventSlim(false);
         BigQueryInsertRow? insertRow = null;

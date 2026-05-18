@@ -41,6 +41,7 @@ public static class AspNetCoreExtensions
 
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DfeAnalyticsAspNetCoreOptions>, DfeAnalyticsAspNetCoreConfigureOptions>());
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DfeAnalyticsAspNetCoreOptions>, DfeAnalyticsEventsConfigureOptions>());
+        builder.Services.AddTransient<IOptions<DfeAnalyticsEventsOptions>>(s => s.GetRequiredService<IOptions<DfeAnalyticsAspNetCoreOptions>>());
         builder.Services.Configure(setupAction);
 
         return builder;

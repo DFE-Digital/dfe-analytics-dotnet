@@ -39,6 +39,7 @@ public static class DfeAnalyticsExtensions
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DfeAnalyticsOptions>, DfeAnalyticsConfigureOptions>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IPostConfigureOptions<DfeAnalyticsOptions>, DfeAnalyticsConfigureOptions>());
         services.TryAddSingleton(_ => TimeProvider.System);
+        services.TryAddTransient<IEventSender, DefaultEventSender>();
         services.Configure(setupAction);
 
         return new DfeAnalyticsBuilder(services);
