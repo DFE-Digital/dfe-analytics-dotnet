@@ -1,8 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.5.0
 
-Add custom events support.
+Adds custom events support.
+
+Adds support for the `hidden_DATA` field on events.
 
 Handle job already running when deploying new configuration.
 
