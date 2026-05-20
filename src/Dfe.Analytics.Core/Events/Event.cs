@@ -20,7 +20,8 @@ public class Event
     /// <summary>
     /// Gets the <c>event_type</c> field.
     /// </summary>
-    public string EventType { get; } = "web_request";
+    [DisallowNull]
+    public string? EventType { get; set; }
 
     /// <summary>
     /// Gets or sets the <c>environment</c> field.

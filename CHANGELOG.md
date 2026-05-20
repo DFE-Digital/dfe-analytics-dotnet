@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+Add custom events support.
+
 Handle job already running when deploying new configuration.
 
 ## 0.4.2

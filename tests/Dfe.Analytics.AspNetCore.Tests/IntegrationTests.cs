@@ -1,3 +1,4 @@
+using Dfe.Analytics.Events;
 using Google.Cloud.BigQuery.V2;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Moq;
@@ -17,7 +18,7 @@ public class IntegrationTests : IClassFixture<IntegrationTestsApplicationFactory
     }
 
     [Fact]
-    public async Task WritesEventToBigQuery()
+    public async Task SendsWebRequestEventToBigQuery()
     {
         using var waitHandle = new ManualResetEventSlim(false);
         BigQueryInsertRow? insertRow = null;
@@ -310,11 +311,221 @@ public class IntegrationTests : IClassFixture<IntegrationTestsApplicationFactory
                 It.IsAny<CancellationToken>()),
             Times.Never());
     }
+
+    [Fact]
+    public async Task SendsCustomEventEventToBigQuery()
+    {
+        using var waitHandle = new ManualResetEventSlim(false);
+        BigQueryInsertRow? insertRow = null;
+
+        _bigQueryClient.Setup(
+            mock => mock.InsertRowAsync(
+                IntegrationTestsStartup.DatasetId,
+                IntegrationTestsStartup.TableId,
+                It.IsAny<BigQueryInsertRow>(),
+                It.IsAny<InsertOptions>(),
+                It.IsAny<CancellationToken>()))
+            .Callback(new InvocationAction(invocation =>
+            {
+                insertRow = (BigQueryInsertRow)invocation.Arguments[2];
+                waitHandle.Set();
+            }));
+
+        var userId = "user-123";
+        var referer = "http://example.org/";
+        var userAgent = "TestClient";
+
+        var httpClient = _fixture.CreateClient();
+
+        var request = new HttpRequestMessage(HttpMethod.Get, "/custom-event?foo=42&bar=69");
+        request.Headers.TryAddWithoutValidation("User-Agent", userAgent);
+        request.Headers.TryAddWithoutValidation("X-UserId", userId);
+        request.Headers.TryAddWithoutValidation("Referer", referer);
+
+        var response = await httpClient.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+
+        waitHandle.Wait(1000);
+        Assert.NotNull(insertRow);
+
+        Assert.Collection(
+            insertRow!.Cast<KeyValuePair<string, object>>(),
+            field =>
+            {
+                Assert.Equal("occurred_at", field.Key);
+                var value = Assert.IsType<DateTime>(field.Value);
+                Assert.Equal(DateTime.UtcNow, value, TimeSpan.FromSeconds(1));
+            },
+            field =>
+            {
+                Assert.Equal("event_type", field.Key);
+                Assert.Equal("custom-event", field.Value);
+            },
+            field =>
+            {
+                Assert.Equal("environment", field.Key);
+                Assert.Equal(IntegrationTestsStartup.Environment, field.Value);
+            },
+            field =>
+            {
+                Assert.Equal("namespace", field.Key);
+                Assert.Equal(IntegrationTestsStartup.Namespace, field.Value);
+            },
+            field =>
+            {
+                Assert.Equal("user_id", field.Key);
+                Assert.Equal(userId, field.Value);
+            },
+            field =>
+            {
+                Assert.Equal("request_uuid", field.Key);
+                Assert.NotEmpty(field.Value as string);
+            },
+            field =>
+            {
+                Assert.Equal("request_method", field.Key);
+                Assert.Equal("GET", field.Value);
+            },
+            field =>
+            {
+                Assert.Equal("request_path", field.Key);
+                Assert.Equal("/custom-event", field.Value);
+            },
+            field =>
+            {
+                Assert.Equal("request_user_agent", field.Key);
+                Assert.Equal(userAgent, field.Value);
+            },
+            field =>
+            {
+                Assert.Equal("request_referer", field.Key);
+                Assert.Equal(referer, field.Value);
+            },
+            field =>
+            {
+                Assert.Equal("request_query", field.Key);
+                Assert.Collection(
+                    Assert.IsAssignableFrom<IEnumerable<BigQueryInsertRow>>(field.Value),
+                    row =>
+                    {
+                        Assert.Collection(
+                            row.Cast<KeyValuePair<string, object>>()!,
+                            field =>
+                            {
+                                Assert.Equal("key", field.Key);
+                                Assert.Equal("foo", field.Value);
+                            },
+                            field =>
+                            {
+                                Assert.Equal("value", field.Key);
+                                Assert.Collection(Assert.IsAssignableFrom<IEnumerable<string>>(field.Value), v => Assert.Equal("42", v));
+                            });
+                    },
+                    row =>
+                    {
+                        Assert.Collection(
+                            row.Cast<KeyValuePair<string, object>>()!,
+                            field =>
+                            {
+                                Assert.Equal("key", field.Key);
+                                Assert.Equal("bar", field.Value);
+                            },
+                            field =>
+                            {
+                                Assert.Equal("value", field.Key);
+                                Assert.Collection(Assert.IsAssignableFrom<IEnumerable<string>>(field.Value), v => Assert.Equal("69", v));
+                            });
+                    });
+            },
+            field =>
+            {
+                Assert.Equal("response_content_type", field.Key);
+                Assert.Equal("text/plain", field.Value);
+            },
+            field =>
+            {
+                Assert.Equal("response_status", field.Key);
+                Assert.Equal("200", field.Value);
+            },
+            field =>
+            {
+                Assert.Equal("DATA", field.Key);
+                Assert.Collection(
+                    Assert.IsAssignableFrom<IEnumerable<BigQueryInsertRow>>(field.Value),
+                    row =>
+                    {
+                        Assert.Collection(
+                            row.Cast<KeyValuePair<string, object>>()!,
+                            field =>
+                            {
+                                Assert.Equal("key", field.Key);
+                                Assert.Equal("data-key1", field.Value);
+                            },
+                            field =>
+                            {
+                                Assert.Equal("value", field.Key);
+                                Assert.Collection(Assert.IsAssignableFrom<IEnumerable<string>>(field.Value), v => Assert.Equal("data-value1", v));
+                            });
+                    },
+                    row =>
+                    {
+                        Assert.Collection(
+                            row.Cast<KeyValuePair<string, object>>()!,
+                            field =>
+                            {
+                                Assert.Equal("key", field.Key);
+                                Assert.Equal("data-key2", field.Value);
+                            },
+                            field =>
+                            {
+                                Assert.Equal("value", field.Key);
+                                Assert.Collection(Assert.IsAssignableFrom<IEnumerable<string>>(field.Value), v => Assert.Equal("data-value2", v));
+                            });
+                    },
+                    row =>
+                    {
+                        Assert.Collection(
+                            row.Cast<KeyValuePair<string, object>>()!,
+                            field =>
+                            {
+                                Assert.Equal("key", field.Key);
+                                Assert.Equal("Enriched", field.Value);
+                            },
+                            field =>
+                            {
+                                Assert.Equal("value", field.Key);
+                                Assert.Collection(Assert.IsAssignableFrom<IEnumerable<string>>(field.Value), v => Assert.Equal("42", v));
+                            });
+                    });
+            },
+            field =>
+            {
+                Assert.Equal("hidden_DATA", field.Key);
+                Assert.Empty(Assert.IsAssignableFrom<IEnumerable<BigQueryInsertRow>>(field.Value));
+            },
+            field =>
+            {
+                Assert.Equal("entity_table_name", field.Key);
+                Assert.Null(field.Value);
+            },
+            field =>
+            {
+                Assert.Equal("anonymised_user_agent_and_ip", field.Key);
+            },
+            field =>
+            {
+                Assert.Equal("event_tags", field.Key);
+                Assert.Collection(
+                    Assert.IsAssignableFrom<IEnumerable<string>>(field.Value),
+                    t => Assert.Equal("tag1", t),
+                    t => Assert.Equal("tag2", t));
+            });
+    }
 }
 
 public class IntegrationTestsApplicationFactory : WebApplicationFactory<IntegrationTestsStartup>
 {
-    protected override IWebHostBuilder? CreateWebHostBuilder() => new WebHostBuilder();
+    protected override IWebHostBuilder CreateWebHostBuilder() => new WebHostBuilder();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder) => builder
         .UseContentRoot(".")
@@ -359,6 +570,21 @@ public class IntegrationTestsStartup
 
             endpoints.MapGet("/not-in-filter", async ctx =>
             {
+                ctx.Response.ContentType = "text/plain";
+                await ctx.Response.WriteAsync("Ok");
+            });
+
+            endpoints.MapGet("/custom-event", async ctx =>
+            {
+                ctx.IgnoreWebRequestEvent();
+
+                var eventSender = ctx.RequestServices.GetRequiredService<IEventSender>();
+                var @event = eventSender.CreateEvent("custom-event");
+                @event.AddData("data-key1", "data-value1");
+                @event.AddData("data-key2", "data-value2");
+                @event.AddTags("tag1", "tag2");
+                await eventSender.SendEventAsync(@event);
+
                 ctx.Response.ContentType = "text/plain";
                 await ctx.Response.WriteAsync("Ok");
             });

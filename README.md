@@ -154,6 +154,19 @@ builder.Services.AddDfeAnalytics()
 
 ### Advanced usage
 
+#### Custom events
+
+You can publish custom events by using `IEventSender`.
+
+```cs
+//IEventSender eventSender;
+var customEvent = eventSender.CreateEvent("my-custom-event");
+customEvent.AddData("SingleValueKey", "value");
+customEvent.AddData("MultiValueKey", "value1", "value2");
+await eventSender.SendEventAsync();
+```
+
+
 #### Adding tags or data to the event
 
 ```cs
