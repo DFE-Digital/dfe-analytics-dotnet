@@ -22,7 +22,7 @@ public class AnalyticsConfigurationProviderTests
 
     [Theory]
     [InlineData(AirbyteSyncMode.IncrementalAppend, "incremental_append")]
-    [InlineData(AirbyteSyncMode.IncrementalAppendDeduped, "incremental_append_dedup")]
+    [InlineData(AirbyteSyncMode.IncrementalAppendDeduped, "incremental_deduped_history")]
     public void GetConfiguration_SyncModeConfigured_MapsToExpectedAirbyteSyncMode(
         AirbyteSyncMode airbyteSyncMode,
         string expectedSyncMode)

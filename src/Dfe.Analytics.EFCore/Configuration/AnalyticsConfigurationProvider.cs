@@ -21,7 +21,7 @@ public class AnalyticsConfigurationProvider
         var syncMode = (dbSyncMetadata?.AirbyteSyncMode ?? default(AirbyteSyncMode)) switch
         {
             AirbyteSyncMode.IncrementalAppend => "incremental_append",
-            AirbyteSyncMode.IncrementalAppendDeduped => "incremental_append_dedup",
+            AirbyteSyncMode.IncrementalAppendDeduped => "incremental_deduped_history",
             _ => throw new NotSupportedException($"Unknown sync mode: '{dbSyncMetadata?.AirbyteSyncMode}'.")
         };
 
