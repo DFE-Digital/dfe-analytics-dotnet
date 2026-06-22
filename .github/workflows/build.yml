@@ -15,7 +15,7 @@ jobs:
     name: "Build, test & package"
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0  # Important for minver to create the right version number
         filter: tree:0
@@ -62,7 +62,7 @@ jobs:
       id-token: write
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Download package artifact
         uses: actions/download-artifact@v8
