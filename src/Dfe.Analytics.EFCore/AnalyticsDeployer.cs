@@ -97,9 +97,9 @@ public class AnalyticsDeployer(
                         .Select(t => new UpdateConnectionDetailsRequestConfigurationStream
                         {
                             Name = t.Name,
-                            SyncMode = "incremental_append",
+                            SyncMode = configuration.AirbyteSyncMode,
                             CursorField = ["_ab_cdc_lsn"],
-                            PrimaryKey = [t.PrimaryKey.ColumnNames],
+                            PrimaryKey = t.PrimaryKey.ColumnNames.Select(n => new[] { n }),
                             SelectedFields = _airbyteFieldNames.Concat(t.Columns.Select(c => c.Name))
                                 .Select(n => new UpdateConnectionDetailsRequestConfigurationStreamField
                                 {

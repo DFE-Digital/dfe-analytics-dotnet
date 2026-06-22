@@ -1,9 +1,44 @@
 using Dfe.Analytics.EFCore.Configuration;
+using Dfe.Analytics.EFCore.Description;
 
 namespace Dfe.Analytics.EFCore.Tests.Configuration;
 
 public class AnalyticsConfigurationProviderTests
 {
+    [Fact]
+    public void GetConfiguration_NoSyncModeConfigured_DefaultsToIncrementalAppend()
+    {
+        // Arrange
+        var dbContext = new TestDbContext();
+
+        var provider = new AnalyticsConfigurationProvider();
+
+        // Act
+        var configuration = provider.GetConfiguration(dbContext);
+
+        // Assert
+        Assert.Equal("incremental_append", configuration.AirbyteSyncMode);
+    }
+
+    [Theory]
+    [InlineData(AirbyteSyncMode.IncrementalAppend, "incremental_append")]
+    [InlineData(AirbyteSyncMode.IncrementalAppendDeduped, "incremental_deduped_history")]
+    public void GetConfiguration_SyncModeConfigured_MapsToExpectedAirbyteSyncMode(
+        AirbyteSyncMode airbyteSyncMode,
+        string expectedSyncMode)
+    {
+        // Arrange
+        var dbContext = new TestDbContext(airbyteSyncMode);
+
+        var provider = new AnalyticsConfigurationProvider();
+
+        // Act
+        var configuration = provider.GetConfiguration(dbContext);
+
+        // Assert
+        Assert.Equal(expectedSyncMode, configuration.AirbyteSyncMode);
+    }
+
     [Fact]
     public void GetConfiguration_CreatesValidConfigurationFromDbContext()
     {

@@ -17,6 +17,14 @@ public class AnalyticsConfigurationProvider
         var dbContextName = dbContext.GetType().AssemblyQualifiedName ??
             throw new InvalidOperationException("Failed to get the assembly qualified name of the DbContext.");
 
+        var dbSyncMetadata = dbContext.Model.FindAnnotation(AnnotationKeys.DatabaseSyncMetadata)?.Value as DatabaseSyncMetadata;
+        var syncMode = (dbSyncMetadata?.AirbyteSyncMode ?? default(AirbyteSyncMode)) switch
+        {
+            AirbyteSyncMode.IncrementalAppend => "incremental_append",
+            AirbyteSyncMode.IncrementalAppendDeduped => "incremental_deduped_history",
+            _ => throw new NotSupportedException($"Unknown sync mode: '{dbSyncMetadata?.AirbyteSyncMode}'.")
+        };
+
         var tables = new List<TableSyncInfo>();
 
         foreach (var rootEntityType in dbContext.Model.GetEntityTypes())
@@ -72,7 +80,7 @@ public class AnalyticsConfigurationProvider
             });
         }
 
-        return new DatabaseSyncConfiguration { DbContextName = dbContextName, Tables = tables.ToArray() };
+        return new DatabaseSyncConfiguration { AirbyteSyncMode = syncMode, DbContextName = dbContextName, Tables = tables.ToArray() };
     }
 
     private static TablePrimaryKeySyncInfo GetPrimaryKey(IEntityType entityType)

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.1
+
+Add option to use Airbyte's `Incremental | Append + Deduped` sync mode.
+
+Fixes primary key definition for tables with composite primary keys.
+
 ## 0.5.0
 
 Adds custom events support.
