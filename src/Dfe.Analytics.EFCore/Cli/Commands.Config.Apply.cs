@@ -25,6 +25,7 @@ internal static partial class Commands
         var airbyteClientIdOption = new Option<string>("--airbyte-client-id") { Required = true };
         var airbyteClientSecretOption = new Option<string>("--airbyte-client-secret") { Required = true };
         var airbyteConnectionIdOption = new Option<string>("--airbyte-connection-id") { Required = true };
+        var airbyteSyncModeOption = new Option<string>("--airbyte-sync-mode") { Required = false };
 
         // Postgres options
         var connectionStringOption = new Option<string>("--connection-string") { Required = true };
@@ -43,6 +44,7 @@ internal static partial class Commands
             airbyteClientIdOption,
             airbyteClientSecretOption,
             airbyteConnectionIdOption,
+            airbyteSyncModeOption,
             connectionStringOption,
             timeoutOption
         };
@@ -61,6 +63,7 @@ internal static partial class Commands
             var airbyteClientId = parseResult.GetRequiredValue(airbyteClientIdOption);
             var airbyteClientSecret = parseResult.GetRequiredValue(airbyteClientSecretOption);
             var airbyteConnectionId = parseResult.GetRequiredValue(airbyteConnectionIdOption);
+            var airbyteSyncMode = parseResult.GetValue(airbyteSyncModeOption);
             var connectionString = parseResult.GetRequiredValue(connectionStringOption);
             var timeoutSeconds = parseResult.GetValue(timeoutOption) ?? DefaultTimeoutSeconds;
 
@@ -91,7 +94,13 @@ internal static partial class Commands
             var analyticsDeployer = scope.ServiceProvider.GetRequiredService<AnalyticsDeployer>();
             using var cts = new CancellationTokenSource();
             cts.CancelAfter(timeoutSeconds * 1000);
-            await analyticsDeployer.DeployAsync(configuration, dbContext, airbyteConnectionId, hiddenPolicyTagName, cancellationToken: cts.Token);
+            await analyticsDeployer.DeployAsync(
+                configuration,
+                dbContext,
+                airbyteConnectionId,
+                airbyteSyncMode,
+                hiddenPolicyTagName,
+                cancellationToken: cts.Token);
         });
 
         return command;

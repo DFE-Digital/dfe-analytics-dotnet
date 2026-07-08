@@ -25,6 +25,7 @@ public class AnalyticsDeployerTests
         var configuration = GetConfiguration();
         var connectionId = Guid.NewGuid().ToString();
         var sourceId = Guid.NewGuid().ToString();
+        var syncMode = "incremental_deduped_history";
 
         string? capturedConnectionUpdateRequestContent = null;
 
@@ -75,7 +76,7 @@ public class AnalyticsDeployerTests
         var deployer = CreateDeployer(httpClient);
 
         // Act
-        await deployer.ApplyAirbyteConfigurationAsync(configuration, connectionId, progressReporter, TestContext.Current.CancellationToken);
+        await deployer.ApplyAirbyteConfigurationAsync(configuration, connectionId, syncMode, progressReporter, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(capturedConnectionUpdateRequestContent);
@@ -87,7 +88,7 @@ public class AnalyticsDeployerTests
                     "streams": [
                         {
                             "name": "TestEntity",
-                            "syncMode": "incremental_append",
+                            "syncMode": "incremental_deduped_history",
                             "cursorField": [
                                 "_ab_cdc_lsn"
                             ],
@@ -144,77 +145,6 @@ public class AnalyticsDeployerTests
         var actualJson = JsonNode.Parse(capturedConnectionUpdateRequestContent!);
 
         Assert.True(JsonNode.DeepEquals(expectedJson, actualJson));
-    }
-
-    [Fact]
-    public async Task ApplyAirbyteConfigurationAsync_UsesSyncModeFromConfiguration()
-    {
-        // Arrange
-        var configuration = GetConfiguration(airbyteSyncMode: "incremental_append_dedup");
-        var connectionId = Guid.NewGuid().ToString();
-        var sourceId = Guid.NewGuid().ToString();
-
-        string? capturedConnectionUpdateRequestContent = null;
-
-        var httpClientOptions = new HttpClientInterceptorOptions()
-            .ThrowsOnMissingRegistration();
-
-        new HttpRequestInterceptionBuilder()
-            .Requests()
-            .ForMethod(new HttpMethod("POST"))
-            .ForHttps()
-            .ForAnyHost()
-            .ForPath("api/v1/connections/get")
-            .ForContent(async req => await req.ReadFromJsonAsync<JsonNode>() is JsonObject json &&
-                json["connectionId"]?.GetValue<string>() == connectionId)
-            .Responds()
-            .WithJsonContent(new JsonObject
-            {
-                ["sourceId"] = sourceId
-            })
-            .RegisterWith(httpClientOptions);
-
-        new HttpRequestInterceptionBuilder()
-            .Requests()
-            .ForMethod(new HttpMethod("POST"))
-            .ForHttps()
-            .ForAnyHost()
-            .ForPath("/api/v1/sources/discover_schema")
-            .ForContent(async req => await req.ReadFromJsonAsync<JsonNode>() is JsonObject json &&
-                json["sourceId"]?.GetValue<string>() == sourceId)
-            .Responds()
-            .WithJsonContent(new JsonObject())
-            .RegisterWith(httpClientOptions);
-
-        new HttpRequestInterceptionBuilder()
-            .Requests()
-            .ForMethod(new HttpMethod("PATCH"))
-            .ForHttps()
-            .ForAnyHost()
-            .ForPath($"api/public/v1/connections/{Uri.EscapeDataString(connectionId)}")
-            .WithInterceptionCallback(req => capturedConnectionUpdateRequestContent = req.Content?.ReadAsStringAsync().Result)
-            .RegisterWith(httpClientOptions);
-
-        using var httpClient = httpClientOptions.CreateHttpClient();
-        httpClient.BaseAddress = new Uri("https://dummy-airbyte/");
-
-        var progressReporter = new RecordingProgressReporter();
-
-        var deployer = CreateDeployer(httpClient);
-
-        // Act
-        await deployer.ApplyAirbyteConfigurationAsync(configuration, connectionId, progressReporter, TestContext.Current.CancellationToken);
-
-        // Assert
-        Assert.NotNull(capturedConnectionUpdateRequestContent);
-
-        var actualJson = JsonNode.Parse(capturedConnectionUpdateRequestContent!);
-
-        var testEntityStream = actualJson!["configurations"]![0]!["streams"]!
-            .AsArray()
-            .Single(s => s!["name"]!.GetValue<string>() == "TestEntity");
-
-        Assert.Equal("incremental_append_dedup", testEntityStream!["syncMode"]!.GetValue<string>());
     }
 
     [Fact]
@@ -548,11 +478,10 @@ public class AnalyticsDeployerTests
         return new AnalyticsDeployer(airbyteApiClient, options);
     }
 
-    private DatabaseSyncConfiguration GetConfiguration(string airbyteSyncMode = "incremental_append") =>
+    private DatabaseSyncConfiguration GetConfiguration() =>
         new()
         {
             DbContextName = typeof(TestDbContext).AssemblyQualifiedName!,
-            AirbyteSyncMode = airbyteSyncMode,
             Tables =
             [
                 new TableSyncInfo

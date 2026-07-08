@@ -4,7 +4,6 @@ internal static class AnnotationKeys
 {
     private const string BaseKeyName = "DfeAnalytics";
 
-    internal const string DatabaseSyncMetadata = BaseKeyName + nameof(DatabaseSyncMetadata);
     internal const string TableAnalyticsSyncMetadata = BaseKeyName + nameof(TableAnalyticsSyncMetadata);
     internal const string ColumnAnalyticsSyncMetadata = BaseKeyName + nameof(ColumnAnalyticsSyncMetadata);
 

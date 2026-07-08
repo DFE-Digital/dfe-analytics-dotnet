@@ -11,8 +11,6 @@ public sealed class DatabaseSyncConfiguration : IEquatable<DatabaseSyncConfigura
 
     public required string DbContextName { get; init; }
 
-    public required string AirbyteSyncMode { get; init; }
-
     public required IReadOnlyCollection<TableSyncInfo> Tables { get; init; }
 
     public static async Task<DatabaseSyncConfiguration> ReadFromFileAsync(string configurationPath, CancellationToken cancellationToken = default)
@@ -51,7 +49,7 @@ public sealed class DatabaseSyncConfiguration : IEquatable<DatabaseSyncConfigura
             return true;
         }
 
-        return DbContextName == other.DbContextName && AirbyteSyncMode == other.AirbyteSyncMode && Tables.SequenceEqual(other.Tables);
+        return Tables.SequenceEqual(other.Tables);
     }
 
     public override bool Equals(object? obj)
@@ -61,15 +59,6 @@ public sealed class DatabaseSyncConfiguration : IEquatable<DatabaseSyncConfigura
 
     public override int GetHashCode()
     {
-        var hashCode = new HashCode();
-        hashCode.Add(DbContextName);
-        hashCode.Add(AirbyteSyncMode);
-
-        foreach (var table in Tables)
-        {
-            hashCode.Add(table);
-        }
-
-        return hashCode.ToHashCode().GetHashCode();
+        return HashCode.Combine(Tables.Select(t => t.GetHashCode()));
     }
 }
