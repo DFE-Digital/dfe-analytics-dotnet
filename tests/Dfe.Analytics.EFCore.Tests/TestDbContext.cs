@@ -1,35 +1,16 @@
-using Dfe.Analytics.EFCore.Description;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 
 namespace Dfe.Analytics.EFCore.Tests;
 
-public class TestDbContext(AirbyteSyncMode? airbyteSyncMode = null) : DbContext
+public class TestDbContext : DbContext
 {
-    private AirbyteSyncMode? AirbyteSyncMode => airbyteSyncMode;
-
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder.UseNpgsql();
-
-        // EF Core caches the built model per context type by default. Vary the cache key by the configured
-        // sync mode so tests exercising different sync modes don't reuse each other's cached model.
-        optionsBuilder.ReplaceService<IModelCacheKeyFactory, SyncModeAwareModelCacheKeyFactory>();
-    }
-
-    private sealed class SyncModeAwareModelCacheKeyFactory : IModelCacheKeyFactory
-    {
-        public object Create(DbContext context, bool designTime) =>
-            (context.GetType(), (context as TestDbContext)?.AirbyteSyncMode, designTime);
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        if (airbyteSyncMode is { } syncMode)
-        {
-            modelBuilder.ConfigureAnalyticsSync(syncMode);
-        }
-
         var testEntityConfiguration = modelBuilder.Entity<TestEntity>();
         testEntityConfiguration.IncludeInAnalyticsSync(hidden: false);
         testEntityConfiguration.HasKey(t => t.TestEntityId);
