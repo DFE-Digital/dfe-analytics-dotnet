@@ -25,6 +25,7 @@ public class AnalyticsDeployerTests
         var configuration = GetConfiguration();
         var connectionId = Guid.NewGuid().ToString();
         var sourceId = Guid.NewGuid().ToString();
+        var syncMode = "incremental_deduped_history";
 
         string? capturedConnectionUpdateRequestContent = null;
 
@@ -75,7 +76,7 @@ public class AnalyticsDeployerTests
         var deployer = CreateDeployer(httpClient);
 
         // Act
-        await deployer.ApplyAirbyteConfigurationAsync(configuration, connectionId, progressReporter, TestContext.Current.CancellationToken);
+        await deployer.ApplyAirbyteConfigurationAsync(configuration, connectionId, syncMode, progressReporter, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(capturedConnectionUpdateRequestContent);
@@ -87,7 +88,7 @@ public class AnalyticsDeployerTests
                     "streams": [
                         {
                             "name": "TestEntity",
-                            "syncMode": "incremental_append",
+                            "syncMode": "incremental_deduped_history",
                             "cursorField": [
                                 "_ab_cdc_lsn"
                             ],

@@ -11,12 +11,15 @@ public class AnalyticsDeployer(
     AirbyteApiClient airbyteApiClient,
     IOptions<DfeAnalyticsOptions> optionsAccessor)
 {
+    private const string DefaultAirbyteSyncMode = "incremental_append";
+
     private static readonly string[] _airbyteFieldNames = ["_ab_cdc_lsn", "_ab_cdc_deleted_at", "_ab_cdc_updated_at"];
 
     public async Task DeployAsync(
         DatabaseSyncConfiguration configuration,
         DbContext dbContext,
         string airbyteConnectionId,
+        string? airbyteSyncMode,
         string hiddenPolicyTagName,
         IProgressReporter? progressReporter = null,
         CancellationToken cancellationToken = default)
@@ -33,7 +36,7 @@ public class AnalyticsDeployer(
             "Waiting for migrations to be applied");
 
         await WithProgressReportingAsync(
-            () => ApplyAirbyteConfigurationAsync(configuration, airbyteConnectionId, progressReporter, cancellationToken),
+            () => ApplyAirbyteConfigurationAsync(configuration, airbyteConnectionId, airbyteSyncMode, progressReporter, cancellationToken),
             progressReporter,
             "Applying Airbyte configuration");
 
@@ -52,10 +55,13 @@ public class AnalyticsDeployer(
     internal async Task ApplyAirbyteConfigurationAsync(
         DatabaseSyncConfiguration configuration,
         string connectionId,
+        string? syncMode,
         IProgressReporter progressReporter,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(connectionId);
+
+        syncMode ??= DefaultAirbyteSyncMode;
 
         // Retrieve connection details to get source ID
         var connectionResponse = await WithProgressReportingAsync(
@@ -97,7 +103,7 @@ public class AnalyticsDeployer(
                         .Select(t => new UpdateConnectionDetailsRequestConfigurationStream
                         {
                             Name = t.Name,
-                            SyncMode = "incremental_append",
+                            SyncMode = syncMode,
                             CursorField = ["_ab_cdc_lsn"],
                             PrimaryKey = t.PrimaryKey.ColumnNames.Select(n => new[] { n }),
                             SelectedFields = _airbyteFieldNames.Concat(t.Columns.Select(c => c.Name))
