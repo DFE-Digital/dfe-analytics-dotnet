@@ -4,6 +4,8 @@
 
 Replace sync mode configuration with an option to the deploy CLI task.
 
+Fixes passing CredentialsJson from config.
+
 ## 0.5.1
 
 Add option to use Airbyte's `Incremental | Append + Deduped` sync mode.
