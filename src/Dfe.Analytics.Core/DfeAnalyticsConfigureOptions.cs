@@ -72,7 +72,7 @@ internal class DfeAnalyticsConfigureOptions(IServiceProvider serviceProvider) :
             {
                 options.BigQueryClient = BigQueryClient.Create(
                     projectId,
-                    GoogleCredential.FromJson(credentialsJson.ToString()));
+                    GoogleCredential.FromJson(options.CredentialsJson));
             }
             else if (Environment.GetEnvironmentVariable(FederatedAksSubjectTokenProvider.TokenPathEnvironmentVariableName) is not null &&
                 options.FederatedAksAuthentication is { Audience: { } audience, ServiceAccountImpersonationUrl: { } serviceAccountImpersonationUrl })
