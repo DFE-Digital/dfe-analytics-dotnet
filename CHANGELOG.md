@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.5.2
 
 Replace sync mode configuration with an option to the deploy CLI task.
 
