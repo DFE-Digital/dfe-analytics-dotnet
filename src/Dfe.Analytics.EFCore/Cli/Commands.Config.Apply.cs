@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.CommandLine;
 using Dfe.Analytics.EFCore.Configuration;
 using Microsoft.EntityFrameworkCore;
@@ -19,6 +20,35 @@ internal static partial class Commands
         var projectIdOption = new Option<string>("--project-id") { Required = true };
         var datasetIdOption = new Option<string>("--dataset-id") { Required = true };
         var hiddenPolicyTagNameOption = new Option<string>("--hidden-policy-tag-name") { Required = true };
+        var policyTagOption = new Option<IReadOnlyDictionary<string, string>>("--policy-tag")
+        {
+            Required = false,
+            Arity = new ArgumentArity(2, ArgumentArity.OneOrMore.MaximumNumberOfValues),
+            AllowMultipleArgumentsPerToken = true,
+            CustomParser = result =>
+            {
+                var policyTagMapping = new Dictionary<string, string>();
+
+                if (result.Tokens.Count % 2 != 0)
+                {
+                    result.AddError("--policy-tag must be specified as an alias followed by a name");
+                    return policyTagMapping;
+                }
+
+                for (var i = 0; i < result.Tokens.Count; i += 2)
+                {
+                    var alias = result.Tokens[i].Value;
+                    var name = result.Tokens[i + 1].Value;
+
+                    if (!policyTagMapping.TryAdd(alias, name))
+                    {
+                        result.AddError($"--policy-tag with alias '{alias}' has already been specified");
+                    }
+                }
+
+                return policyTagMapping;
+            }
+        };
 
         // Airbyte options
         var airbyteApiBaseAddressOption = new Option<string>("--airbyte-api-base-address") { Required = true };
@@ -40,6 +70,7 @@ internal static partial class Commands
             projectIdOption,
             datasetIdOption,
             hiddenPolicyTagNameOption,
+            policyTagOption,
             airbyteApiBaseAddressOption,
             airbyteClientIdOption,
             airbyteClientSecretOption,
@@ -59,6 +90,7 @@ internal static partial class Commands
             var projectId = parseResult.GetRequiredValue(projectIdOption);
             var datasetId = parseResult.GetRequiredValue(datasetIdOption);
             var hiddenPolicyTagName = parseResult.GetRequiredValue(hiddenPolicyTagNameOption);
+            var additionalPolicyTags = parseResult.GetValue(policyTagOption) ?? FrozenDictionary<string, string>.Empty;
             var airbyteApiBaseAddress = parseResult.GetRequiredValue(airbyteApiBaseAddressOption);
             var airbyteClientId = parseResult.GetRequiredValue(airbyteClientIdOption);
             var airbyteClientSecret = parseResult.GetRequiredValue(airbyteClientSecretOption);
@@ -100,6 +132,7 @@ internal static partial class Commands
                 airbyteConnectionId,
                 airbyteSyncMode,
                 hiddenPolicyTagName,
+                additionalPolicyTags,
                 cancellationToken: cts.Token);
         });
 

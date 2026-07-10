@@ -4,6 +4,7 @@ public class TestEntity
 {
     public int TestEntityId { get; set; }
     public string? Name { get; set; }
+    public string? Email { get; set; }
     public string? Ignored { get; set; }
     public DateOnly DateOfBirth { get; set; }
 }

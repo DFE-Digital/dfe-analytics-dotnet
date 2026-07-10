@@ -13,19 +13,24 @@ public static class DbContextConfigurationExtensions
 
         builder.HasAnnotation(
             AnnotationKeys.TableAnalyticsSyncMetadata,
-            new TableSyncMetadata(new ColumnSyncMetadata(includeAllColumns, hidden)));
+            new TableSyncMetadata(new ColumnSyncMetadata(includeAllColumns, hidden, PolicyTag: null)));
 
         return builder;
     }
 
-    public static T ConfigureAnalyticsSync<T>(this T builder, bool included = true, bool? hidden = null)
+    public static T ConfigureAnalyticsSync<T>(this T builder, bool included = true, bool? hidden = null, string? policyTag = null)
         where T : PropertyBuilder
     {
         ArgumentNullException.ThrowIfNull(builder);
 
+        if (hidden is null && policyTag is not null)
+        {
+            hidden = true;
+        }
+
         builder.HasAnnotation(
             AnnotationKeys.ColumnAnalyticsSyncMetadata,
-            new ColumnSyncMetadata(included, hidden));
+            new ColumnSyncMetadata(included, hidden, policyTag));
 
         return builder;
     }

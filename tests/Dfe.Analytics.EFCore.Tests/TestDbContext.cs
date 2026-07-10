@@ -15,6 +15,7 @@ public class TestDbContext : DbContext
         testEntityConfiguration.IncludeInAnalyticsSync(hidden: false);
         testEntityConfiguration.HasKey(t => t.TestEntityId);
         testEntityConfiguration.Property(t => t.Name).ConfigureAnalyticsSync(hidden: true);
+        testEntityConfiguration.Property(t => t.Email).ConfigureAnalyticsSync(policyTag: "email");
         testEntityConfiguration.Property(t => t.DateOfBirth);
         testEntityConfiguration.Ignore(t => t.Ignored);
 
