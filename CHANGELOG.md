@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+Add extension to EFCore package to expose DB sync configuration in an HTTP endpoint in an ASP.NET Core app.
+
 ## 0.5.2
 
 Replace sync mode configuration with an option to the deploy CLI task.
