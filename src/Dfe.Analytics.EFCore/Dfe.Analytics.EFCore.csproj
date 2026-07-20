@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.9" />
     <PackageReference Include="System.CommandLine" Version="2.0.0" />
   </ItemGroup>
 
@@ -46,6 +46,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Dfe.Analytics.AspNetCore\Dfe.Analytics.AspNetCore.csproj" PrivateAssets="all" />
     <ProjectReference Include="..\Dfe.Analytics.Core\Dfe.Analytics.Core.csproj" />
   </ItemGroup>
 

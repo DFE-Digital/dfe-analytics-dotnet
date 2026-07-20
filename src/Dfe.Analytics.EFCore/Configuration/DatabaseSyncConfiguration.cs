@@ -4,10 +4,7 @@ namespace Dfe.Analytics.EFCore.Configuration;
 
 public sealed class DatabaseSyncConfiguration : IEquatable<DatabaseSyncConfiguration>
 {
-    private static readonly JsonSerializerOptions _jsonSerializerOptions = new(JsonSerializerDefaults.Web)
-    {
-        WriteIndented = true
-    };
+    internal static JsonSerializerOptions JsonSerializerOptions { get; } = new(JsonSerializerDefaults.Web) { WriteIndented = true };
 
     public required string DbContextName { get; init; }
 
@@ -24,7 +21,7 @@ public sealed class DatabaseSyncConfiguration : IEquatable<DatabaseSyncConfigura
 
         var json = await File.ReadAllTextAsync(configurationPath, cancellationToken);
 
-        return JsonSerializer.Deserialize<DatabaseSyncConfiguration>(json, _jsonSerializerOptions)
+        return JsonSerializer.Deserialize<DatabaseSyncConfiguration>(json, JsonSerializerOptions)
             ?? throw new InvalidOperationException("Failed to deserialize DatabaseSyncConfiguration.");
     }
 
@@ -32,7 +29,7 @@ public sealed class DatabaseSyncConfiguration : IEquatable<DatabaseSyncConfigura
     {
         ArgumentNullException.ThrowIfNull(configurationPath);
 
-        var json = JsonSerializer.Serialize(this, _jsonSerializerOptions);
+        var json = JsonSerializer.Serialize(this, JsonSerializerOptions);
 
         return File.WriteAllTextAsync(configurationPath, json, cancellationToken);
     }

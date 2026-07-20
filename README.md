@@ -88,6 +88,29 @@ If all is configured correctly, whenever any of the applications in your solutio
 a `dfe-analytics` directory should be created in the output directory.
 This directory contains a `config.json` file with the configuration for your DbContext, including which tables and columns are configured to sync to BigQuery.
 
+### Exposing the sync configuration over HTTP
+
+If your DbContext is hosted in an ASP.NET Core application, you can expose its sync configuration over an HTTP endpoint.
+This is useful for verifying at runtime which tables and columns are configured to sync to BigQuery.
+
+Map the endpoint in your application's entry point (e.g. `Program.cs`):
+
+```cs
+using Dfe.Analytics.EFCore;
+
+//...
+app.MapDfeAnalyticsDbConfiguration<MyDbContext>();
+```
+
+By default the configuration is served as JSON from `/_dfe-analytics/db-config.json`.
+You can supply a custom path if you prefer:
+
+```cs
+app.MapDfeAnalyticsDbConfiguration<MyDbContext>("/my-custom-path.json");
+```
+
+The `MyDbContext` type must be registered in the application's service provider (e.g. via `AddDbContext<MyDbContext>()`).
+
 
 ## Capturing web request events in ASP.NET Core
 
