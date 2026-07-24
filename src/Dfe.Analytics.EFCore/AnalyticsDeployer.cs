@@ -271,7 +271,7 @@ public class AnalyticsDeployer(
 
                 if (column.Hidden)
                 {
-                    var policyTagName = column.PolicyTag is string policyTag
+                    var policyTagName = column.PolicyTag is string policyTag && policyTag != "hidden"
                         ? additionalPolicyTags.TryGetValue(column.PolicyTag, out var tag)
                             ? tag
                             : throw new InvalidOperationException($"Missing policy tag mapping for '{policyTag}'.")
