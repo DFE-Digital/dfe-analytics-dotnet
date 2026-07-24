@@ -28,21 +28,25 @@ public class AnalyticsConfigurationProviderTests
                     {
                         Assert.Equal("BaseProperty", column.Name);
                         Assert.False(column.Hidden);
+                        Assert.Null(column.PolicyTag);
                     },
                     column =>
                     {
                         Assert.Equal("DerivedProperty2", column.Name);
                         Assert.False(column.Hidden);
+                        Assert.Null(column.PolicyTag);
                     },
                     column =>
                     {
                         Assert.Equal("Discriminator", column.Name);
                         Assert.False(column.Hidden);
+                        Assert.Null(column.PolicyTag);
                     },
                     column =>
                     {
                         Assert.Equal("Id", column.Name);
                         Assert.False(column.Hidden);
+                        Assert.Null(column.PolicyTag);
                     }
                 );
             },
@@ -56,16 +60,27 @@ public class AnalyticsConfigurationProviderTests
                     {
                         Assert.Equal("DateOfBirth", column.Name);
                         Assert.False(column.Hidden);
+                        Assert.Null(column.PolicyTag);
                     },
                     column =>
                     {
+                        // Specifying a policy tag implies the column is hidden
+                        Assert.Equal("Email", column.Name);
+                        Assert.True(column.Hidden);
+                        Assert.Equal("email", column.PolicyTag);
+                    },
+                    column =>
+                    {
+                        // Hidden columns without an explicit policy tag get the default hidden policy tag
                         Assert.Equal("Name", column.Name);
                         Assert.True(column.Hidden);
+                        Assert.Equal("hidden", column.PolicyTag);
                     },
                     column =>
                     {
                         Assert.Equal("TestEntityId", column.Name);
                         Assert.False(column.Hidden);
+                        Assert.Null(column.PolicyTag);
                     }
                 );
             });

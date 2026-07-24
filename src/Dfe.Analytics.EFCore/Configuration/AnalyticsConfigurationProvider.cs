@@ -118,7 +118,10 @@ public class AnalyticsConfigurationProvider
                 columnSyncInfos.Add(new ColumnSyncInfo
                 {
                     Name = columnName,
-                    Hidden = hidden
+                    Hidden = hidden,
+                    PolicyTag = hidden ?
+                        columnSyncMetadata?.PolicyTag ?? tableSyncMetadata.DefaultColumnSettings.PolicyTag :
+                        null
                 });
             }
         }

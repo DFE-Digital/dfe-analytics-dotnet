@@ -4,6 +4,7 @@ public sealed class ColumnSyncInfo : IEquatable<ColumnSyncInfo>
 {
     public required string Name { get; init; }
     public required bool Hidden { get; init; }
+    public required string? PolicyTag { get; init; }
 
     public override bool Equals(object? obj)
     {
@@ -22,7 +23,7 @@ public sealed class ColumnSyncInfo : IEquatable<ColumnSyncInfo>
 
     public override int GetHashCode()
     {
-        return HashCode.Combine(Name, Hidden);
+        return HashCode.Combine(Name, Hidden, PolicyTag);
     }
 
     public bool Equals(ColumnSyncInfo? other)
@@ -37,6 +38,6 @@ public sealed class ColumnSyncInfo : IEquatable<ColumnSyncInfo>
             return true;
         }
 
-        return Name == other.Name && Hidden == other.Hidden;
+        return Name == other.Name && Hidden == other.Hidden && PolicyTag == other.PolicyTag;
     }
 }

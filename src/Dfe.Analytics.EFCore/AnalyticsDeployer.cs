@@ -21,6 +21,7 @@ public class AnalyticsDeployer(
         string airbyteConnectionId,
         string? airbyteSyncMode,
         string hiddenPolicyTagName,
+        IReadOnlyDictionary<string, string> additionalPolicyTags,
         IProgressReporter? progressReporter = null,
         CancellationToken cancellationToken = default)
     {
@@ -46,7 +47,7 @@ public class AnalyticsDeployer(
             "Waiting for sync to complete");
 
         await WithProgressReportingAsync(
-            () => UpdateBigQueryPolicyTagsAsync(configuration, hiddenPolicyTagName, progressReporter, cancellationToken),
+            () => UpdateBigQueryPolicyTagsAsync(configuration, hiddenPolicyTagName, additionalPolicyTags, progressReporter, cancellationToken),
             progressReporter,
             "Updating BigQuery policy tags");
     }
@@ -207,6 +208,7 @@ public class AnalyticsDeployer(
     internal async Task UpdateBigQueryPolicyTagsAsync(
         DatabaseSyncConfiguration configuration,
         string hiddenPolicyTagName,
+        IReadOnlyDictionary<string, string> additionalPolicyTags,
         IProgressReporter progressReporter,
         CancellationToken cancellationToken = default)
     {
@@ -269,7 +271,13 @@ public class AnalyticsDeployer(
 
                 if (column.Hidden)
                 {
-                    bqField.PolicyTags.Names.Add(hiddenPolicyTagName);
+                    var policyTagName = column.PolicyTag is string policyTag && policyTag != "hidden"
+                        ? additionalPolicyTags.TryGetValue(column.PolicyTag, out var tag)
+                            ? tag
+                            : throw new InvalidOperationException($"Missing policy tag mapping for '{policyTag}'.")
+                        : hiddenPolicyTagName;
+
+                    bqField.PolicyTags.Names.Add(policyTagName);
                 }
 
                 var policyTagNamesChanged = !existingPolicyTagNames.SetEquals(bqField.PolicyTags.Names);

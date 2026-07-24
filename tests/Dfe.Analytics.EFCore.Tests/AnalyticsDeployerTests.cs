@@ -17,6 +17,9 @@ public class AnalyticsDeployerTests
     private const string DatasetId = "dummy-dataset";
 
     private const string HiddenPolicyTagName = "projects/dummy-project/locations/us/taxonomies/dummy-taxonomy/policyTags/dummy-policy-tag";
+    private const string SensitivePolicyTagName = "projects/dummy-project/locations/us/taxonomies/dummy-taxonomy/policyTags/dummy-sensitive-policy-tag";
+
+    private static readonly IReadOnlyDictionary<string, string> NoAdditionalPolicyTags = new Dictionary<string, string>();
 
     [Fact]
     public async Task ApplyAirbyteConfigurationAsync_UpdatesAirbyteConnectionWithExpectedPayload()
@@ -192,7 +195,7 @@ public class AnalyticsDeployerTests
 
         // Act
         var ex = await Record.ExceptionAsync(
-            () => deployer.UpdateBigQueryPolicyTagsAsync(configuration, HiddenPolicyTagName, progressReporter, TestContext.Current.CancellationToken));
+            () => deployer.UpdateBigQueryPolicyTagsAsync(configuration, HiddenPolicyTagName, NoAdditionalPolicyTags, progressReporter, TestContext.Current.CancellationToken));
 
         // Assert
         Assert.IsType<InvalidOperationException>(ex);
@@ -255,10 +258,126 @@ public class AnalyticsDeployerTests
         var deployer = CreateDeployer(httpClient, bigQueryClientMock.Object);
 
         // Act
-        await deployer.UpdateBigQueryPolicyTagsAsync(configuration, HiddenPolicyTagName, progressReporter, TestContext.Current.CancellationToken);
+        await deployer.UpdateBigQueryPolicyTagsAsync(configuration, HiddenPolicyTagName, NoAdditionalPolicyTags, progressReporter, TestContext.Current.CancellationToken);
 
         // Assert
         bigQueryClientMock.Verify();
+    }
+
+    [Fact]
+    public async Task UpdateBigQueryPolicyTagsAsync_ColumnHasPolicyTag_AddsMappedPolicyTagToSchema()
+    {
+        // Arrange
+        var configuration = GetConfiguration(namePolicyTag: "sensitive");
+        var additionalPolicyTags = new Dictionary<string, string> { ["sensitive"] = SensitivePolicyTagName };
+        var progressReporter = new RecordingProgressReporter();
+
+        var tableName = configuration.Tables.Select(t => t.Name).Single();
+
+        using var httpClient = new HttpClient();
+
+        var bigQueryClientMock = new Mock<BigQueryClient>();
+
+        bigQueryClientMock
+            .Setup(mock => mock.ListTablesAsync(ProjectId, DatasetId, It.IsAny<ListTablesOptions>()))
+            .Returns(new TestablePagedAsyncEnumerable<TableList, BigQueryTable>([
+                new BigQueryTable(bigQueryClientMock.Object, new Table { TableReference = new TableReference { TableId = tableName } })
+            ]));
+
+        bigQueryClientMock
+            .Setup(mock => mock.GetTableAsync(ProjectId, DatasetId, tableName, It.IsAny<GetTableOptions>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() =>
+            {
+                var table = new BigQueryTable(
+                    bigQueryClientMock.Object,
+                    new Table
+                    {
+                        Schema = new TableSchema
+                        {
+                            Fields =
+                            [
+                                new TableFieldSchema { Name = "TestEntityId", Type = "INTEGER" },
+                                new TableFieldSchema { Name = "Name", Type = "STRING" },
+                                new TableFieldSchema { Name = "DateOfBirth", Type = "DATE" }
+                            ]
+                        }
+                    });
+
+                return table;
+            });
+
+        bigQueryClientMock
+            .Setup(mock => mock.PatchTableAsync(
+                ProjectId,
+                DatasetId,
+                tableName,
+                It.Is<Table>(t =>
+                    t.Schema.Fields.Single(f => f.Name == "Name").PolicyTags.Names.Contains(SensitivePolicyTagName) &&
+                    !t.Schema.Fields.Single(f => f.Name == "Name").PolicyTags.Names.Contains(HiddenPolicyTagName)),
+                It.IsAny<PatchTableOptions>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => null)
+            .Verifiable();
+
+        var deployer = CreateDeployer(httpClient, bigQueryClientMock.Object);
+
+        // Act
+        await deployer.UpdateBigQueryPolicyTagsAsync(configuration, HiddenPolicyTagName, additionalPolicyTags, progressReporter, TestContext.Current.CancellationToken);
+
+        // Assert
+        bigQueryClientMock.Verify();
+    }
+
+    [Fact]
+    public async Task UpdateBigQueryPolicyTagsAsync_ColumnHasPolicyTagWithNoMapping_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var configuration = GetConfiguration(namePolicyTag: "sensitive");
+        var progressReporter = new RecordingProgressReporter();
+
+        var tableName = configuration.Tables.Select(t => t.Name).Single();
+
+        using var httpClient = new HttpClient();
+
+        var bigQueryClientMock = new Mock<BigQueryClient>();
+
+        bigQueryClientMock
+            .Setup(mock => mock.ListTablesAsync(ProjectId, DatasetId, It.IsAny<ListTablesOptions>()))
+            .Returns(new TestablePagedAsyncEnumerable<TableList, BigQueryTable>([
+                new BigQueryTable(bigQueryClientMock.Object, new Table { TableReference = new TableReference { TableId = tableName } })
+            ]));
+
+        bigQueryClientMock
+            .Setup(mock => mock.GetTableAsync(ProjectId, DatasetId, tableName, It.IsAny<GetTableOptions>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() =>
+            {
+                var table = new BigQueryTable(
+                    bigQueryClientMock.Object,
+                    new Table
+                    {
+                        Schema = new TableSchema
+                        {
+                            Fields =
+                            [
+                                new TableFieldSchema { Name = "TestEntityId", Type = "INTEGER" },
+                                new TableFieldSchema { Name = "Name", Type = "STRING" },
+                                new TableFieldSchema { Name = "DateOfBirth", Type = "DATE" }
+                            ]
+                        }
+                    });
+
+                return table;
+            });
+
+        var deployer = CreateDeployer(httpClient, bigQueryClientMock.Object);
+
+        // Act
+        var ex = await Record.ExceptionAsync(
+            () => deployer.UpdateBigQueryPolicyTagsAsync(configuration, HiddenPolicyTagName, NoAdditionalPolicyTags, progressReporter, TestContext.Current.CancellationToken));
+
+        // Assert
+        Assert.IsType<InvalidOperationException>(ex);
+        Assert.Equal("Missing policy tag mapping for 'sensitive'.", ex.Message);
     }
 
     [Fact]
@@ -334,7 +453,7 @@ public class AnalyticsDeployerTests
         var deployer = CreateDeployer(httpClient, bigQueryClientMock.Object);
 
         // Act
-        await deployer.UpdateBigQueryPolicyTagsAsync(configuration, HiddenPolicyTagName, progressReporter, TestContext.Current.CancellationToken);
+        await deployer.UpdateBigQueryPolicyTagsAsync(configuration, HiddenPolicyTagName, NoAdditionalPolicyTags, progressReporter, TestContext.Current.CancellationToken);
 
         // Assert
         bigQueryClientMock.Verify();
@@ -392,7 +511,7 @@ public class AnalyticsDeployerTests
         var deployer = CreateDeployer(httpClient, bigQueryClientMock.Object);
 
         // Act
-        await deployer.UpdateBigQueryPolicyTagsAsync(configuration, HiddenPolicyTagName, progressReporter, TestContext.Current.CancellationToken);
+        await deployer.UpdateBigQueryPolicyTagsAsync(configuration, HiddenPolicyTagName, NoAdditionalPolicyTags, progressReporter, TestContext.Current.CancellationToken);
 
         // Assert
         bigQueryClientMock.Verify(
@@ -478,7 +597,7 @@ public class AnalyticsDeployerTests
         return new AnalyticsDeployer(airbyteApiClient, options);
     }
 
-    private DatabaseSyncConfiguration GetConfiguration() =>
+    private DatabaseSyncConfiguration GetConfiguration(string? namePolicyTag = null) =>
         new()
         {
             DbContextName = typeof(TestDbContext).AssemblyQualifiedName!,
@@ -490,9 +609,9 @@ public class AnalyticsDeployerTests
                     PrimaryKey = new TablePrimaryKeySyncInfo { ColumnNames = ["TestEntityId"] },
                     Columns =
                     [
-                        new ColumnSyncInfo { Name = "TestEntityId", Hidden = false },
-                        new ColumnSyncInfo { Name = "Name", Hidden = true },
-                        new ColumnSyncInfo { Name = "DateOfBirth", Hidden = false }
+                        new ColumnSyncInfo { Name = "TestEntityId", Hidden = false, PolicyTag = null },
+                        new ColumnSyncInfo { Name = "Name", Hidden = true, PolicyTag = namePolicyTag },
+                        new ColumnSyncInfo { Name = "DateOfBirth", Hidden = false, PolicyTag = null }
                     ]
                 }
             ]
