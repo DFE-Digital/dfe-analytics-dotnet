@@ -74,7 +74,7 @@ public class AnalyticsConfigurationProviderTests
                         // Hidden columns without an explicit policy tag get the default hidden policy tag
                         Assert.Equal("Name", column.Name);
                         Assert.True(column.Hidden);
-                        Assert.Null(column.PolicyTag);
+                        Assert.Equal("hidden", column.PolicyTag);
                     },
                     column =>
                     {
