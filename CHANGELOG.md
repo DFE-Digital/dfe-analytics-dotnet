@@ -1,8 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.6.0
 
 Add extension to EFCore package to expose DB sync configuration in an HTTP endpoint in an ASP.NET Core app.
+
+Adds support for multiple BQ policy tags.
 
 ## 0.5.2
 
