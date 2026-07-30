@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Migrations;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Migrations.Internal;
 
 namespace Dfe.Analytics.EFCore.Tests;
 
@@ -32,4 +34,27 @@ public class TestDbContext : DbContext
         var derivedEntity2Configuration = modelBuilder.Entity<DerivedEntity2>();
         derivedEntity2Configuration.IncludeInAnalyticsSync(includeAllColumns: true, hidden: false);
     }
+}
+
+/// <summary>
+/// A <see cref="TestDbContext"/> that reports no pending migrations without connecting to a database.
+/// </summary>
+public class NoPendingMigrationsTestDbContext : TestDbContext
+{
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        base.OnConfiguring(optionsBuilder);
+
+        optionsBuilder.ReplaceService<IHistoryRepository, EmptyHistoryRepository>();
+    }
+
+#pragma warning disable EF1001  // Internal EF Core API usage
+    private sealed class EmptyHistoryRepository(HistoryRepositoryDependencies dependencies) : NpgsqlHistoryRepository(dependencies)
+    {
+        // Returning false here means no attempt is made to read applied migrations from the database
+        public override bool Exists() => false;
+
+        public override Task<bool> ExistsAsync(CancellationToken cancellationToken = default) => Task.FromResult(false);
+    }
+#pragma warning restore EF1001
 }

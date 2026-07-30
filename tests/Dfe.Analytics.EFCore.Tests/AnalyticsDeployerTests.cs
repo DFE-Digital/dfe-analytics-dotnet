@@ -22,6 +22,120 @@ public class AnalyticsDeployerTests
     private static readonly IReadOnlyDictionary<string, string> NoAdditionalPolicyTags = new Dictionary<string, string>();
 
     [Fact]
+    public async Task DeployAsync_SkipPolicyTagsIsFalse_UpdatesBigQueryPolicyTags()
+    {
+        // Arrange
+        var configuration = GetConfiguration();
+        var connectionId = Guid.NewGuid().ToString();
+        var progressReporter = new RecordingProgressReporter();
+
+        var tableName = configuration.Tables.Select(t => t.Name).Single();
+
+        var httpClientOptions = new HttpClientInterceptorOptions()
+            .ThrowsOnMissingRegistration();
+
+        RegisterAirbyteInterceptions(httpClientOptions, connectionId);
+
+        using var httpClient = httpClientOptions.CreateHttpClient();
+        httpClient.BaseAddress = new Uri("https://dummy-airbyte/");
+
+        var bigQueryClientMock = new Mock<BigQueryClient>();
+
+        bigQueryClientMock
+            .Setup(mock => mock.ListTablesAsync(ProjectId, DatasetId, It.IsAny<ListTablesOptions>()))
+            .Returns(new TestablePagedAsyncEnumerable<TableList, BigQueryTable>([
+                new BigQueryTable(bigQueryClientMock.Object, new Table { TableReference = new TableReference { TableId = tableName } })
+            ]));
+
+        bigQueryClientMock
+            .Setup(mock => mock.GetTableAsync(ProjectId, DatasetId, tableName, It.IsAny<GetTableOptions>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => new BigQueryTable(
+                bigQueryClientMock.Object,
+                new Table
+                {
+                    Schema = new TableSchema
+                    {
+                        Fields =
+                        [
+                            new TableFieldSchema { Name = "TestEntityId", Type = "INTEGER" },
+                            new TableFieldSchema { Name = "Name", Type = "STRING" },
+                            new TableFieldSchema { Name = "DateOfBirth", Type = "DATE" }
+                        ]
+                    }
+                }));
+
+        bigQueryClientMock
+            .Setup(mock => mock.PatchTableAsync(
+                ProjectId,
+                DatasetId,
+                tableName,
+                It.Is<Table>(t =>
+                    t.Schema.Fields.Single(f => f.Name == "Name").PolicyTags.Names.Contains(HiddenPolicyTagName)),
+                It.IsAny<PatchTableOptions>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => null)
+            .Verifiable();
+
+        using var dbContext = new NoPendingMigrationsTestDbContext();
+
+        var deployer = CreateDeployer(httpClient, bigQueryClientMock.Object);
+
+        // Act
+        await deployer.DeployAsync(
+            configuration,
+            dbContext,
+            connectionId,
+            airbyteSyncMode: null,
+            HiddenPolicyTagName,
+            NoAdditionalPolicyTags,
+            skipPolicyTags: false,
+            progressReporter,
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        bigQueryClientMock.Verify();
+    }
+
+    [Fact]
+    public async Task DeployAsync_SkipPolicyTagsIsTrue_DoesNotUpdateBigQueryPolicyTags()
+    {
+        // Arrange
+        var configuration = GetConfiguration();
+        var connectionId = Guid.NewGuid().ToString();
+        var progressReporter = new RecordingProgressReporter();
+
+        var httpClientOptions = new HttpClientInterceptorOptions()
+            .ThrowsOnMissingRegistration();
+
+        RegisterAirbyteInterceptions(httpClientOptions, connectionId);
+
+        using var httpClient = httpClientOptions.CreateHttpClient();
+        httpClient.BaseAddress = new Uri("https://dummy-airbyte/");
+
+        var bigQueryClientMock = new Mock<BigQueryClient>(MockBehavior.Strict);
+
+        using var dbContext = new NoPendingMigrationsTestDbContext();
+
+        var deployer = CreateDeployer(httpClient, bigQueryClientMock.Object);
+
+        // Act
+        await deployer.DeployAsync(
+            configuration,
+            dbContext,
+            connectionId,
+            airbyteSyncMode: null,
+            HiddenPolicyTagName,
+            NoAdditionalPolicyTags,
+            skipPolicyTags: true,
+            progressReporter,
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        bigQueryClientMock.VerifyNoOtherCalls();
+        Assert.DoesNotContain(progressReporter.WrittenLines, l => l.StartsWith("Updating BigQuery policy tags", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task ApplyAirbyteConfigurationAsync_UpdatesAirbyteConnectionWithExpectedPayload()
     {
         // Arrange
@@ -579,6 +693,73 @@ public class AnalyticsDeployerTests
         await deployer.CompleteAirbyteSyncAsync(connectionId, progressReporter, TestContext.Current.CancellationToken);
 
         // Assert
+    }
+
+    private static void RegisterAirbyteInterceptions(HttpClientInterceptorOptions httpClientOptions, string connectionId)
+    {
+        var sourceId = Guid.NewGuid().ToString();
+        var jobId = 12345;
+
+        new HttpRequestInterceptionBuilder()
+            .Requests()
+            .ForMethod(new HttpMethod("POST"))
+            .ForHttps()
+            .ForAnyHost()
+            .ForPath("api/v1/connections/get")
+            .Responds()
+            .WithJsonContent(new JsonObject
+            {
+                ["sourceId"] = sourceId
+            })
+            .RegisterWith(httpClientOptions);
+
+        new HttpRequestInterceptionBuilder()
+            .Requests()
+            .ForMethod(new HttpMethod("POST"))
+            .ForHttps()
+            .ForAnyHost()
+            .ForPath("api/v1/sources/discover_schema")
+            .Responds()
+            .WithJsonContent(new JsonObject())
+            .RegisterWith(httpClientOptions);
+
+        new HttpRequestInterceptionBuilder()
+            .Requests()
+            .ForMethod(new HttpMethod("PATCH"))
+            .ForHttps()
+            .ForAnyHost()
+            .ForPath($"api/public/v1/connections/{Uri.EscapeDataString(connectionId)}")
+            .RegisterWith(httpClientOptions);
+
+        new HttpRequestInterceptionBuilder()
+            .Requests()
+            .ForMethod(new HttpMethod("POST"))
+            .ForHttps()
+            .ForAnyHost()
+            .ForPath("api/public/v1/jobs")
+            .Responds()
+            .WithJsonContent(new JsonObject
+            {
+                ["jobId"] = jobId,
+                ["status"] = "running",
+                ["jobType"] = "sync"
+            })
+            .RegisterWith(httpClientOptions);
+
+        new HttpRequestInterceptionBuilder()
+            .Requests()
+            .ForMethod(new HttpMethod("GET"))
+            .ForHttps()
+            .ForAnyHost()
+            .ForPath($"api/public/v1/jobs/{jobId}")
+            .Responds()
+            .WithJsonContent(new JsonObject
+            {
+                ["jobId"] = jobId,
+                ["status"] = "succeeded",
+                ["jobType"] = "sync"
+            })
+            .RegisterWith(httpClientOptions);
     }
 
     private AnalyticsDeployer CreateDeployer(
