@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.1
+
+Adds `--skip-policy-tags` option to deploy job.
+
 ## 0.6.0
 
 Add extension to EFCore package to expose DB sync configuration in an HTTP endpoint in an ASP.NET Core app.
