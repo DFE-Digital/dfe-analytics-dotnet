@@ -49,6 +49,7 @@ internal static partial class Commands
                 return policyTagMapping;
             }
         };
+        var skipPolicyTagsOption = new Option<bool>("--skip-policy-tags");
 
         // Airbyte options
         var airbyteApiBaseAddressOption = new Option<string>("--airbyte-api-base-address") { Required = true };
@@ -71,6 +72,7 @@ internal static partial class Commands
             datasetIdOption,
             hiddenPolicyTagNameOption,
             policyTagOption,
+            skipPolicyTagsOption,
             airbyteApiBaseAddressOption,
             airbyteClientIdOption,
             airbyteClientSecretOption,
@@ -91,6 +93,7 @@ internal static partial class Commands
             var datasetId = parseResult.GetRequiredValue(datasetIdOption);
             var hiddenPolicyTagName = parseResult.GetRequiredValue(hiddenPolicyTagNameOption);
             var additionalPolicyTags = parseResult.GetValue(policyTagOption) ?? FrozenDictionary<string, string>.Empty;
+            var skipPolicyTags = parseResult.GetValue(skipPolicyTagsOption);
             var airbyteApiBaseAddress = parseResult.GetRequiredValue(airbyteApiBaseAddressOption);
             var airbyteClientId = parseResult.GetRequiredValue(airbyteClientIdOption);
             var airbyteClientSecret = parseResult.GetRequiredValue(airbyteClientSecretOption);
@@ -133,6 +136,7 @@ internal static partial class Commands
                 airbyteSyncMode,
                 hiddenPolicyTagName,
                 additionalPolicyTags,
+                skipPolicyTags,
                 cancellationToken: cts.Token);
         });
 

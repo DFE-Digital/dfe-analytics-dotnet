@@ -22,6 +22,7 @@ public class AnalyticsDeployer(
         string? airbyteSyncMode,
         string hiddenPolicyTagName,
         IReadOnlyDictionary<string, string> additionalPolicyTags,
+        bool skipPolicyTags,
         IProgressReporter? progressReporter = null,
         CancellationToken cancellationToken = default)
     {
@@ -46,10 +47,13 @@ public class AnalyticsDeployer(
             progressReporter,
             "Waiting for sync to complete");
 
-        await WithProgressReportingAsync(
-            () => UpdateBigQueryPolicyTagsAsync(configuration, hiddenPolicyTagName, additionalPolicyTags, progressReporter, cancellationToken),
-            progressReporter,
-            "Updating BigQuery policy tags");
+        if (!skipPolicyTags)
+        {
+            await WithProgressReportingAsync(
+                () => UpdateBigQueryPolicyTagsAsync(configuration, hiddenPolicyTagName, additionalPolicyTags, progressReporter, cancellationToken),
+                progressReporter,
+                "Updating BigQuery policy tags");
+        }
     }
 
     // internal for testing
