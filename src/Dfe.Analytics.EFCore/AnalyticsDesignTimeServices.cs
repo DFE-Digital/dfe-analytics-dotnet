@@ -10,8 +10,9 @@ namespace Dfe.Analytics.EFCore;
 /// Registers the design-time services needed to scaffold a <see cref="DbContext"/> that uses DfE Analytics annotations.
 /// </summary>
 /// <remarks>
-/// Projects consuming this package have a <c>DesignTimeServicesReference</c> assembly attribute pointing at this type
-/// generated for them at build time, which is how EF Core's tooling discovers it.
+/// A <c>DesignTimeServicesReference</c> assembly attribute pointing at this type is generated at build time for the
+/// project named by the <c>DfeAnalyticsDbContext</c> MSBuild property, which is how EF Core's tooling discovers it.
+/// When that property doesn't name an assembly, every consuming project gets the attribute instead.
 /// </remarks>
 [EditorBrowsable(EditorBrowsableState.Never)]
 public class DfeAnalyticsDesignTimeServices : IDesignTimeServices

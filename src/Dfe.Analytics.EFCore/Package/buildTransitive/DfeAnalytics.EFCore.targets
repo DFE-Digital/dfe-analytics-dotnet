@@ -1,10 +1,6 @@
 <Project>
 
-  <PropertyGroup>
-    <DfeAnalyticsGenerateDesignTimeServicesReference Condition="'$(DfeAnalyticsGenerateDesignTimeServicesReference)' == ''">true</DfeAnalyticsGenerateDesignTimeServicesReference>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(DfeAnalyticsGenerateDesignTimeServicesReference)' == 'true'">
+  <PropertyGroup Condition="'$(DfeAnalyticsGenerateDesignTimeServicesReference)' != 'false'">
     <CoreCompileDependsOn>
       CreateDfeAnalyticsDesignTimeServicesReference;
       $(CoreCompileDependsOn)
@@ -14,6 +10,18 @@
   <Target Name="CreateDfeAnalyticsDesignTimeServicesReference">
 
     <PropertyGroup>
+      <!--
+        DfeAnalyticsDbContext is an assembly-qualified type name - 'Some.Namespace.MyDbContext, MyAssembly'.
+        Only the assembly it names needs the reference; EF Core's tooling reads the attribute from the target
+        and startup assemblies of the project it is run against. When no assembly can be determined - the
+        property is unset, or holds a bare type name - fall back to emitting it everywhere.
+      -->
+      <DfeAnalyticsDbContextAssemblyName Condition="'$(DfeAnalyticsDbContext)' != '' And $(DfeAnalyticsDbContext.Contains(','))">$([System.Text.RegularExpressions.Regex]::Replace($(DfeAnalyticsDbContext), '^[^,]*,\s*', ''))</DfeAnalyticsDbContextAssemblyName>
+      <DfeAnalyticsDbContextAssemblyName Condition="'$(DfeAnalyticsDbContextAssemblyName)' != ''">$([System.Text.RegularExpressions.Regex]::Replace($(DfeAnalyticsDbContextAssemblyName), ',.*', ''))</DfeAnalyticsDbContextAssemblyName>
+
+      <DfeAnalyticsEmitDesignTimeServicesReference>true</DfeAnalyticsEmitDesignTimeServicesReference>
+      <DfeAnalyticsEmitDesignTimeServicesReference Condition="'$(DfeAnalyticsGenerateDesignTimeServicesReference)' == '' And '$(DfeAnalyticsDbContextAssemblyName)' != '' And '$(DfeAnalyticsDbContextAssemblyName)' != '$(AssemblyName)'">false</DfeAnalyticsEmitDesignTimeServicesReference>
+
       <DesignTimeServicesReferencePath>$(IntermediateOutputPath)Dfe.Analytics.EFCore.DesignTimeServices.g.cs</DesignTimeServicesReferencePath>
 
       <DesignTimeServicesReferenceSource>
@@ -25,11 +33,12 @@
       </DesignTimeServicesReferenceSource>
     </PropertyGroup>
 
-    <ItemGroup>
+    <ItemGroup Condition="'$(DfeAnalyticsEmitDesignTimeServicesReference)' == 'true'">
       <Compile Include="$(DesignTimeServicesReferencePath)" />
     </ItemGroup>
 
-    <WriteLinesToFile File="$(DesignTimeServicesReferencePath)"
+    <WriteLinesToFile Condition="'$(DfeAnalyticsEmitDesignTimeServicesReference)' == 'true'"
+                      File="$(DesignTimeServicesReferencePath)"
                       Overwrite="true"
                       WriteOnlyWhenDifferent="true"
                       Lines="$(DesignTimeServicesReferenceSource)" />

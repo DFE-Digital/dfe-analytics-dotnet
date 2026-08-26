@@ -4,7 +4,7 @@
 
 Fixes incremental builds in projects that reference the package.
 
-Registers design-time services through an assembly attribute rather than a class generated into every consuming project, so a project's own `IDesignTimeServices` implementation is no longer ignored.
+Registers design-time services through an assembly attribute on the project named by `DfeAnalyticsDbContext`, rather than a class generated into every consuming project, so a project's own `IDesignTimeServices` implementation is no longer ignored.
 
 ## 0.6.1
 
