@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+Fixes incremental builds in projects that reference the package.
+
 ## 0.6.1
 
 Adds `--skip-policy-tags` option to deploy job.
