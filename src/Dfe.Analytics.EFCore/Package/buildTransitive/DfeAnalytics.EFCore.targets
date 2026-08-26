@@ -37,6 +37,7 @@ public class DfeAnalyticsDesignTimeServices : IDesignTimeServices
 
     <WriteLinesToFile File="$(DesignTimeServicesClassPath)"
                       Overwrite="true"
+                      WriteOnlyWhenDifferent="true"
                       Lines="$(DesignTimeServicesClass)" />
   </Target>
 
