@@ -15,13 +15,23 @@ internal class StartupHook
             return File.Exists(assemblyPath) ? context.LoadFromAssemblyPath(assemblyPath) : null;
         };
 
+        // Resolve relative paths against the application's directory so the tools can be invoked from anywhere
+        // (e.g. directly from a container orchestrator, without a shell to change directory first).
+        Directory.SetCurrentDirectory(appDirectory);
+
         var configCommand = new Command("config")
         {
             Commands.GetConfigApplyCommand(),
             Commands.GetConfigCreateCommand()
         };
 
-        var rootCommand = new RootCommand("Tools for DfE Analytics.") { configCommand };
+        var runtimeConfigCommand = new Command("runtimeconfig")
+        {
+            Commands.GetRuntimeConfigCreateCommand()
+        };
+        runtimeConfigCommand.Hidden = true;
+
+        var rootCommand = new RootCommand("Tools for DfE Analytics.") { configCommand, runtimeConfigCommand };
 
         var args = Environment.GetCommandLineArgs().SkipWhile(arg => arg != "--").Skip(1).ToArray();
 

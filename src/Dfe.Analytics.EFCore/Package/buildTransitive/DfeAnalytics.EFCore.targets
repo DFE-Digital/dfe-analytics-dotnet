@@ -68,6 +68,22 @@
           EnvironmentVariables="DOTNET_STARTUP_HOOKS=$(LibPath)"
           LogStandardErrorAsError="true" />
 
+    <!--
+      A copy of the app's runtimeconfig.json with the startup hook enabled. Passing this to the runtimeconfig option of
+      'dotnet exec' runs the tools without needing DOTNET_STARTUP_HOOKS to be set, so they can be invoked in containers without a shell.
+    -->
+    <PropertyGroup>
+      <ApplyConfigRuntimeConfigFileName>apply-config.runtimeconfig.json</ApplyConfigRuntimeConfigFileName>
+      <RuntimeConfigCliArgs>runtimeconfig create</RuntimeConfigCliArgs>
+      <RuntimeConfigCliArgs>$(RuntimeConfigCliArgs) --source $(AssemblyName).runtimeconfig.json</RuntimeConfigCliArgs>
+      <RuntimeConfigCliArgs>$(RuntimeConfigCliArgs) --path $(AnalyticsDirName)/$(ApplyConfigRuntimeConfigFileName)</RuntimeConfigCliArgs>
+    </PropertyGroup>
+
+    <Exec Command="dotnet $(AssemblyName).dll -- $(RuntimeConfigCliArgs)"
+          WorkingDirectory="$(PublishDir)"
+          EnvironmentVariables="DOTNET_STARTUP_HOOKS=$(LibPath)"
+          LogStandardErrorAsError="true" />
+
     <PropertyGroup>
       <ApplyConfigScript>
         <![CDATA[
@@ -75,7 +91,7 @@
 
 cd "%24(dirname "$0")"
 cd ..
-DOTNET_STARTUP_HOOKS=Dfe.Analytics.EFCore dotnet exec $(AssemblyName).dll -- config apply --path $(AnalyticsDirName)/$(ConfigFileName) "$@"
+dotnet exec --runtimeconfig $(AnalyticsDirName)/$(ApplyConfigRuntimeConfigFileName) $(AssemblyName).dll -- config apply --path $(AnalyticsDirName)/$(ConfigFileName) "$@"
 ]]>
       </ApplyConfigScript>
     </PropertyGroup>

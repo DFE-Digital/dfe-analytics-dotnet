@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+Adds a `dfe-analytics/apply-config.runtimeconfig.json` file to the publish output so the configuration can be applied in containers without a shell, using `dotnet exec --runtimeconfig`. `apply-config.sh` now uses this file too, rather than setting `DOTNET_STARTUP_HOOKS`.
+
+The DfE Analytics tools now resolve relative paths against the application's directory rather than the current working directory.
+
 ## 0.6.2
 
 Fixes incremental builds in projects that reference the package.
