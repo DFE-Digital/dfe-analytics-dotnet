@@ -2,9 +2,16 @@
 
 ## Unreleased
 
-Adds a `dfe-analytics/apply-config.runtimeconfig.json` file to the publish output so the configuration can be applied in containers without a shell, using `dotnet exec --runtimeconfig`. `apply-config.sh` now uses this file too, rather than setting `DOTNET_STARTUP_HOOKS`.
+The DfE Analytics tools no longer use a startup hook. They now run as their own entry point, using the application's `deps.json` and `runtimeconfig.json` so its dependencies resolve as they do when the application runs.
+This means the configuration can be applied in containers without a shell, by invoking `dotnet` directly:
 
-The DfE Analytics tools now resolve relative paths against the application's directory rather than the current working directory.
+```
+dotnet exec --depsfile MyApp.deps.json --runtimeconfig MyApp.runtimeconfig.json Dfe.Analytics.EFCore.dll config apply --path dfe-analytics/db-config.json <options>
+```
+
+`apply-config.sh` uses the same command.
+
+The tools now resolve relative paths against the application's directory rather than the current working directory.
 
 ## 0.6.2
 

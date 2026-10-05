@@ -52,36 +52,22 @@
       <AnalyticsDirName>dfe-analytics</AnalyticsDirName>
 
       <ConfigFileName>db-config.json</ConfigFileName>
-      <LibPath>$([MSBuild]::NormalizeDirectory('$(PublishDir)'))Dfe.Analytics.EFCore.dll</LibPath>
+
+      <!--
+        Run the tools with the app's deps.json and runtimeconfig.json so the app's dependencies and shared frameworks
+        resolve exactly as they do when the app itself runs (the same approach 'dotnet ef' uses).
+      -->
+      <CliExec>dotnet exec --depsfile $(AssemblyName).deps.json --runtimeconfig $(AssemblyName).runtimeconfig.json Dfe.Analytics.EFCore.dll</CliExec>
 
       <CliArgs>config create</CliArgs>
       <CliArgs>$(CliArgs) --path $(AnalyticsDirName)/$(ConfigFileName)</CliArgs>
       <CliArgs>$(CliArgs) --dbcontext "$(DfeAnalyticsDbContext)"</CliArgs>
-
-      <CliCommand>dotnet $(AssemblyName).dll -- $(CliArgs)</CliCommand>
     </PropertyGroup>
 
     <MakeDir Directories="$(PublishDir)/$(AnalyticsDirName)" />
 
-    <Exec Command="$(CliCommand)"
+    <Exec Command="$(CliExec) $(CliArgs)"
           WorkingDirectory="$(PublishDir)"
-          EnvironmentVariables="DOTNET_STARTUP_HOOKS=$(LibPath)"
-          LogStandardErrorAsError="true" />
-
-    <!--
-      A copy of the app's runtimeconfig.json with the startup hook enabled. Passing this to the runtimeconfig option of
-      'dotnet exec' runs the tools without needing DOTNET_STARTUP_HOOKS to be set, so they can be invoked in containers without a shell.
-    -->
-    <PropertyGroup>
-      <ApplyConfigRuntimeConfigFileName>apply-config.runtimeconfig.json</ApplyConfigRuntimeConfigFileName>
-      <RuntimeConfigCliArgs>runtimeconfig create</RuntimeConfigCliArgs>
-      <RuntimeConfigCliArgs>$(RuntimeConfigCliArgs) --source $(AssemblyName).runtimeconfig.json</RuntimeConfigCliArgs>
-      <RuntimeConfigCliArgs>$(RuntimeConfigCliArgs) --path $(AnalyticsDirName)/$(ApplyConfigRuntimeConfigFileName)</RuntimeConfigCliArgs>
-    </PropertyGroup>
-
-    <Exec Command="dotnet $(AssemblyName).dll -- $(RuntimeConfigCliArgs)"
-          WorkingDirectory="$(PublishDir)"
-          EnvironmentVariables="DOTNET_STARTUP_HOOKS=$(LibPath)"
           LogStandardErrorAsError="true" />
 
     <PropertyGroup>
@@ -91,7 +77,7 @@
 
 cd "%24(dirname "$0")"
 cd ..
-dotnet exec --runtimeconfig $(AnalyticsDirName)/$(ApplyConfigRuntimeConfigFileName) $(AssemblyName).dll -- config apply --path $(AnalyticsDirName)/$(ConfigFileName) "$@"
+$(CliExec) config apply --path $(AnalyticsDirName)/$(ConfigFileName) "$@"
 ]]>
       </ApplyConfigScript>
     </PropertyGroup>
@@ -99,19 +85,6 @@ dotnet exec --runtimeconfig $(AnalyticsDirName)/$(ApplyConfigRuntimeConfigFileNa
     <WriteLinesToFile File="$(PublishDir)$(AnalyticsDirName)/apply-config.sh"
                       Overwrite="true"
                       Lines="$(ApplyConfigScript)" />
-
-  </Target>
-
-  <Target Name="CopyRuntimeConfigToPublishDir"
-          AfterTargets="Publish">
-
-    <PropertyGroup>
-      <RuntimeConfigFile>$(AssemblyName).runtimeconfig.json</RuntimeConfigFile>
-    </PropertyGroup>
-
-    <Copy SourceFiles="$(MSBuildThisFileDirectory)..\lib\$(TargetFramework)\Dfe.Analytics.EFCore.runtimeconfig.json"
-          DestinationFolder="$(PublishDir)"
-          SkipUnchangedFiles="true" />
 
   </Target>
 
