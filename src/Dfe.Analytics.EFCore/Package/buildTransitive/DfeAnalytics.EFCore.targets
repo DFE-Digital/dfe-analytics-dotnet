@@ -53,22 +53,42 @@
 
       <ConfigFileName>db-config.json</ConfigFileName>
 
-      <!--
-        Run the tools with the app's deps.json and runtimeconfig.json so the app's dependencies and shared frameworks
-        resolve exactly as they do when the app itself runs (the same approach 'dotnet ef' uses).
-      -->
-      <CliExec>dotnet exec --depsfile $(AssemblyName).deps.json --runtimeconfig $(AssemblyName).runtimeconfig.json Dfe.Analytics.EFCore.dll</CliExec>
-
       <CliArgs>config create</CliArgs>
       <CliArgs>$(CliArgs) --path $(AnalyticsDirName)/$(ConfigFileName)</CliArgs>
       <CliArgs>$(CliArgs) --dbcontext "$(DfeAnalyticsDbContext)"</CliArgs>
+
+      <CliExecutablePath>$(PublishDir)$(AnalyticsDirName)/dfe-analytics$(_NativeExecutableExtension)</CliExecutablePath>
     </PropertyGroup>
+
+    <!--
+      The tools run with copies of the app's deps.json and runtimeconfig.json so the app's dependencies and shared
+      frameworks resolve exactly as they do when the app itself runs. The host finds these by name, so
+      'dotnet Dfe.Analytics.EFCore.dll' works without needing to know the app's name.
+    -->
+    <Copy SourceFiles="$(PublishDir)$(AssemblyName).deps.json"
+          DestinationFiles="$(PublishDir)Dfe.Analytics.EFCore.deps.json" />
+    <Copy SourceFiles="$(PublishDir)$(AssemblyName).runtimeconfig.json"
+          DestinationFiles="$(PublishDir)Dfe.Analytics.EFCore.runtimeconfig.json" />
 
     <MakeDir Directories="$(PublishDir)/$(AnalyticsDirName)" />
 
-    <Exec Command="$(CliExec) $(CliArgs)"
+    <Exec Command="dotnet Dfe.Analytics.EFCore.dll $(CliArgs)"
           WorkingDirectory="$(PublishDir)"
           LogStandardErrorAsError="true" />
+
+    <!--
+      A native executable that runs the tools, so they can be invoked without a shell or knowing the app's name
+      (e.g. 'dfe-analytics/dfe-analytics config apply ...'). Created from the same apphost as the app's own executable.
+    -->
+    <CreateAppHost Condition="'$(UseAppHost)' == 'true' And '$(AppHostSourcePath)' != ''"
+                   AppHostSourcePath="$(AppHostSourcePath)"
+                   AppHostDestinationPath="$(CliExecutablePath)"
+                   AppBinaryName="../Dfe.Analytics.EFCore.dll"
+                   IntermediateAssembly="@(IntermediateAssembly->'%(FullPath)')"
+                   EnableMacOSCodeSign="$(_EnableMacOSCodeSign)" />
+
+    <Warning Condition="'$(UseAppHost)' != 'true' Or '$(AppHostSourcePath)' == ''"
+             Text="DfE Analytics: the $(AnalyticsDirName)/dfe-analytics executable was not created because the app does not use an apphost (UseAppHost is not 'true'). Use 'dotnet Dfe.Analytics.EFCore.dll' or $(AnalyticsDirName)/apply-config.sh instead." />
 
     <PropertyGroup>
       <ApplyConfigScript>
@@ -77,7 +97,7 @@
 
 cd "%24(dirname "$0")"
 cd ..
-$(CliExec) config apply --path $(AnalyticsDirName)/$(ConfigFileName) "$@"
+dotnet Dfe.Analytics.EFCore.dll config apply --path $(AnalyticsDirName)/$(ConfigFileName) "$@"
 ]]>
       </ApplyConfigScript>
     </PropertyGroup>
