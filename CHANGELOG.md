@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.6.3
 
 The DfE Analytics tools no longer use a startup hook. They now run as their own entry point, using copies of the application's `deps.json` and `runtimeconfig.json` (written to the publish output as `Dfe.Analytics.EFCore.deps.json` and `Dfe.Analytics.EFCore.runtimeconfig.json`) so its dependencies resolve as they do when the application runs.
 
