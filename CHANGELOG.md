@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+The DfE Analytics tools no longer need `Microsoft.EntityFrameworkCore.Design` at runtime, so a reference to it with `PrivateAssets="all"` (the default added by `dotnet add package`), or no reference at all, now works. Previously, publishing an app that didn't get the package through a normal reference failed with a `FileNotFoundException` for `Microsoft.EntityFrameworkCore.Design`.
+
+The `DbContext` is still created the same way as by EF Core's tools: from an `IDesignTimeDbContextFactory<TContext>` in the `DbContext`'s assembly, then from the application's service provider, then with its parameterless constructor.
+
 ## 0.6.3
 
 The DfE Analytics tools no longer use a startup hook. They now run as their own entry point, using copies of the application's `deps.json` and `runtimeconfig.json` (written to the publish output as `Dfe.Analytics.EFCore.deps.json` and `Dfe.Analytics.EFCore.runtimeconfig.json`) so its dependencies resolve as they do when the application runs.
