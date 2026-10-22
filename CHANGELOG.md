@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.6.4
 
 The DfE Analytics tools no longer need `Microsoft.EntityFrameworkCore.Design` at runtime, so a reference to it with `PrivateAssets="all"` (the default added by `dotnet add package`), or no reference at all, now works. Previously, publishing an app that didn't get the package through a normal reference failed with a `FileNotFoundException` for `Microsoft.EntityFrameworkCore.Design`.
 
