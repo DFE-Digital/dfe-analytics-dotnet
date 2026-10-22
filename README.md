@@ -33,10 +33,15 @@ dotnet add package DfeAnalytics.EFCore
 > [!IMPORTANT]
 > This must be added to the project that contains your `DbContext` class.
 
-Ensure you have a reference to `Microsoft.EntityFrameworkCore.Design`.
+Ensure you have a reference to `Microsoft.EntityFrameworkCore.Design` with `Publish` set to `true`:
 
-> [!IMPORTANT]
-> Ensure the `<PackageReference>` does _not_ have `PrivateAssets="all"` as this will prevent the library from working.
+```xml
+<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="...">
+  <PrivateAssets>all</PrivateAssets>
+  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+  <Publish>true</Publish>
+</PackageReference>
+```
 
 #### 2. Specify the DbContext type in `Directory.Build.props`
 
