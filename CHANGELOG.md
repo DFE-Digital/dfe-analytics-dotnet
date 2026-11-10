@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+The Airbyte sync mode can once again be configured in the EF Core model with `modelBuilder.ConfigureAnalyticsSync(AirbyteSyncMode)`, and can now also be configured per table with the new `airbyteSyncMode` parameter of `IncludeInAnalyticsSync()`.
+
+A table's sync mode takes precedence over the model's sync mode, which takes precedence over the `--airbyte-sync-mode` option of the `config apply` command (which defaults to `incremental_append`). Configured sync modes are written to the generated configuration file as `airbyteSyncMode` on each table.
+
 ## 0.6.4
 
 The DfE Analytics tools no longer need `Microsoft.EntityFrameworkCore.Design` at runtime, so a reference to it with `PrivateAssets="all"` (the default added by `dotnet add package`), or no reference at all, now works. Previously, publishing an app that didn't get the package through a normal reference failed with a `FileNotFoundException` for `Microsoft.EntityFrameworkCore.Design`.

@@ -1,3 +1,4 @@
+using Dfe.Analytics.EFCore.Description;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Migrations.Internal;
@@ -33,6 +34,34 @@ public class TestDbContext : DbContext
 
         var derivedEntity2Configuration = modelBuilder.Entity<DerivedEntity2>();
         derivedEntity2Configuration.IncludeInAnalyticsSync(includeAllColumns: true, hidden: false);
+    }
+}
+
+/// <summary>
+/// A <see cref="TestDbContext"/> with a model-level sync mode and a table-level sync mode override for <see cref="TestEntity"/>.
+/// </summary>
+public class SyncModeTestDbContext : TestDbContext
+{
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        modelBuilder.ConfigureAnalyticsSync(AirbyteSyncMode.IncrementalAppendDeduped);
+        modelBuilder.Entity<TestEntity>().IncludeInAnalyticsSync(hidden: false, airbyteSyncMode: AirbyteSyncMode.IncrementalAppend);
+    }
+}
+
+/// <summary>
+/// A <see cref="TestDbContext"/> with an (invalid) sync mode configured on a derived entity type.
+/// </summary>
+public class DerivedEntitySyncModeTestDbContext : TestDbContext
+{
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<DerivedEntity2>()
+            .IncludeInAnalyticsSync(includeAllColumns: true, hidden: false, airbyteSyncMode: AirbyteSyncMode.IncrementalAppendDeduped);
     }
 }
 
