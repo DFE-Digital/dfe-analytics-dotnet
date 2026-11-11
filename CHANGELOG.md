@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+`DfeAnalytics.EFCore` now has a single `net8.0` build that depends on EF Core 8.0.0 or later, so apps can use any EF Core version from 8 onwards whatever their target framework. Previously, the `net9.0` and `net10.0` builds required EF Core 9 and 10 respectively, so an app targeting .NET 10 could not stay on an older EF Core version.
+
+The package no longer depends on `Npgsql.EntityFrameworkCore.PostgreSQL`, `Microsoft.EntityFrameworkCore.Design` or `Microsoft.Extensions.Hosting.Abstractions`; it depends on `Microsoft.EntityFrameworkCore.Relational` instead. Apps already reference the Npgsql provider to use Postgres. Its `Microsoft.Extensions.Http` dependency is now 8.0.0 or later rather than 10.0.9 or later.
+
 The Airbyte sync mode can once again be configured in the EF Core model with `modelBuilder.ConfigureAnalyticsSync(AirbyteSyncMode)`, and can now also be configured per table with the new `airbyteSyncMode` parameter of `IncludeInAnalyticsSync()`.
 
 A table's sync mode takes precedence over the model's sync mode, which takes precedence over the `--airbyte-sync-mode` option of the `config apply` command (which defaults to `incremental_append`). Configured sync modes are written to the generated configuration file as `airbyteSyncMode` on each table.

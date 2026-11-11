@@ -3,7 +3,7 @@
 This library is a port of the [DfE::Analytics gem](https://github.com/DFE-Digital/dfe-analytics) for .NET.
 It supports capturing web request events in ASP.NET Core applications and capturing Postgres database changes via Airbyte in Entity Framework Core applications.
 
-Applications must use .NET 8, .NET 9 or .NET 10 and the corresponding ASP.NET Core and/or Entity Framework core libraries.
+Applications must use .NET 8 or later. `DfeAnalytics.EFCore` supports Entity Framework Core 8 or later, independently of the target framework; for example, an app targeting .NET 10 can use EF Core 8.
 
 
 ## Pre-requisites
