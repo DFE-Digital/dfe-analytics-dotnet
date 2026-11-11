@@ -264,6 +264,64 @@ public class AnalyticsDeployerTests
         Assert.True(JsonNode.DeepEquals(expectedJson, actualJson));
     }
 
+    [Theory]
+    [InlineData(null, "incremental_append")]
+    [InlineData("incremental_deduped_history", "incremental_deduped_history")]
+    public async Task ApplyAirbyteConfigurationAsync_TableHasSyncMode_UsesTableSyncModeOverSpecifiedSyncMode(
+        string? specifiedSyncMode,
+        string expectedSyncModeForTableWithoutSyncMode)
+    {
+        // Arrange
+        var connectionId = Guid.NewGuid().ToString();
+        var tableWithoutSyncMode = GetConfiguration().Tables.Single();
+        var tableWithSyncMode = new TableSyncInfo
+        {
+            Name = "TableWithSyncMode",
+            PrimaryKey = new TablePrimaryKeySyncInfo { ColumnNames = ["Id"] },
+            Columns = [new ColumnSyncInfo { Name = "Id", Hidden = false, PolicyTag = null }],
+            AirbyteSyncMode = "table_sync_mode"
+        };
+        var configuration = new DatabaseSyncConfiguration
+        {
+            DbContextName = typeof(TestDbContext).AssemblyQualifiedName!,
+            Tables = [tableWithoutSyncMode, tableWithSyncMode]
+        };
+
+        string? capturedConnectionUpdateRequestContent = null;
+
+        var httpClientOptions = new HttpClientInterceptorOptions()
+            .ThrowsOnMissingRegistration();
+
+        RegisterAirbyteInterceptions(
+            httpClientOptions,
+            connectionId,
+            onConnectionUpdate: req => capturedConnectionUpdateRequestContent = req.Content?.ReadAsStringAsync().Result);
+
+        using var httpClient = httpClientOptions.CreateHttpClient();
+        httpClient.BaseAddress = new Uri("https://dummy-airbyte/");
+
+        var deployer = CreateDeployer(httpClient);
+
+        // Act
+        await deployer.ApplyAirbyteConfigurationAsync(
+            configuration,
+            connectionId,
+            specifiedSyncMode,
+            new RecordingProgressReporter(),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotNull(capturedConnectionUpdateRequestContent);
+
+        var streams = JsonNode.Parse(capturedConnectionUpdateRequestContent!)!["configurations"]![0]!["streams"]!.AsArray();
+
+        string GetSyncMode(string streamName) =>
+            streams.Single(s => s!["name"]!.GetValue<string>() == streamName)!["syncMode"]!.GetValue<string>();
+
+        Assert.Equal(expectedSyncModeForTableWithoutSyncMode, GetSyncMode(tableWithoutSyncMode.Name));
+        Assert.Equal("table_sync_mode", GetSyncMode(tableWithSyncMode.Name));
+    }
+
     [Fact]
     public async Task UpdateBigQueryPolicyTagsAsync_ThrowsIfColumnIsMissingFromBqTable()
     {
@@ -695,7 +753,10 @@ public class AnalyticsDeployerTests
         // Assert
     }
 
-    private static void RegisterAirbyteInterceptions(HttpClientInterceptorOptions httpClientOptions, string connectionId)
+    private static void RegisterAirbyteInterceptions(
+        HttpClientInterceptorOptions httpClientOptions,
+        string connectionId,
+        Action<HttpRequestMessage>? onConnectionUpdate = null)
     {
         var sourceId = Guid.NewGuid().ToString();
         var jobId = 12345;
@@ -729,6 +790,7 @@ public class AnalyticsDeployerTests
             .ForHttps()
             .ForAnyHost()
             .ForPath($"api/public/v1/connections/{Uri.EscapeDataString(connectionId)}")
+            .WithInterceptionCallback(req => onConnectionUpdate?.Invoke(req))
             .RegisterWith(httpClientOptions);
 
         new HttpRequestInterceptionBuilder()
