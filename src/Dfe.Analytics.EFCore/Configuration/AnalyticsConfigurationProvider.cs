@@ -17,6 +17,8 @@ public class AnalyticsConfigurationProvider
         var dbContextName = dbContext.GetType().AssemblyQualifiedName ??
             throw new InvalidOperationException("Failed to get the assembly qualified name of the DbContext.");
 
+        var dbSyncMetadata = dbContext.Model.FindAnnotation(AnnotationKeys.DatabaseSyncMetadata)?.Value as DatabaseSyncMetadata;
+
         var tables = new List<TableSyncInfo>();
 
         foreach (var rootEntityType in dbContext.Model.GetEntityTypes())
@@ -51,6 +53,19 @@ public class AnalyticsConfigurationProvider
                 continue;
             }
 
+            var derivedTypeWithSyncMode = entityTypes
+                .Where(e => e.BaseType is not null)
+                .FirstOrDefault(e => (e.FindAnnotation(AnnotationKeys.TableAnalyticsSyncMetadata)?.Value as TableSyncMetadata)?.AirbyteSyncMode is not null);
+
+            if (derivedTypeWithSyncMode is not null)
+            {
+                throw new InvalidOperationException(
+                    $"Entity '{derivedTypeWithSyncMode.Name}' specifies an Airbyte sync mode but is not the root entity type in its inheritance hierarchy." +
+                    $" The sync mode must be defined on the root entity type '{rootEntityType.Name}'.");
+            }
+
+            var syncMode = rootTableSyncMetadata.AirbyteSyncMode ?? dbSyncMetadata?.AirbyteSyncMode;
+
             var tableName = rootEntityType.GetTableName()!;
             var primaryKeySyncInfo = GetPrimaryKey(rootEntityType);
 
@@ -68,12 +83,21 @@ public class AnalyticsConfigurationProvider
             {
                 Name = tableName,
                 PrimaryKey = primaryKeySyncInfo,
-                Columns = columnSyncInfos
+                Columns = columnSyncInfos,
+                AirbyteSyncMode = syncMode is { } sm ? ToAirbyteSyncModeName(sm) : null
             });
         }
 
         return new DatabaseSyncConfiguration { DbContextName = dbContextName, Tables = tables.ToArray() };
     }
+
+    private static string ToAirbyteSyncModeName(AirbyteSyncMode airbyteSyncMode) =>
+        airbyteSyncMode switch
+        {
+            AirbyteSyncMode.IncrementalAppend => "incremental_append",
+            AirbyteSyncMode.IncrementalAppendDeduped => "incremental_deduped_history",
+            _ => throw new NotSupportedException($"Unknown sync mode: '{airbyteSyncMode}'.")
+        };
 
     private static TablePrimaryKeySyncInfo GetPrimaryKey(IEntityType entityType)
     {

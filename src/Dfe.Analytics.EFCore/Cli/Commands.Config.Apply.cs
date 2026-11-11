@@ -56,7 +56,11 @@ internal static partial class Commands
         var airbyteClientIdOption = new Option<string>("--airbyte-client-id") { Required = true };
         var airbyteClientSecretOption = new Option<string>("--airbyte-client-secret") { Required = true };
         var airbyteConnectionIdOption = new Option<string>("--airbyte-connection-id") { Required = true };
-        var airbyteSyncModeOption = new Option<string>("--airbyte-sync-mode") { Required = false };
+        var airbyteSyncModeOption = new Option<string>("--airbyte-sync-mode")
+        {
+            Required = false,
+            Description = "The Airbyte sync mode for tables that don't have a sync mode configured in the EF model. Defaults to 'incremental_append'."
+        };
 
         // Postgres options
         var connectionStringOption = new Option<string>("--connection-string") { Required = true };

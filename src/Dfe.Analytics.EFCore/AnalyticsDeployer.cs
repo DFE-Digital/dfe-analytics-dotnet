@@ -66,7 +66,8 @@ public class AnalyticsDeployer(
     {
         ArgumentNullException.ThrowIfNull(connectionId);
 
-        syncMode ??= DefaultAirbyteSyncMode;
+        // Sync modes configured in the EF model (per table, or for the whole model) take precedence over the one passed in
+        var defaultSyncMode = syncMode ?? DefaultAirbyteSyncMode;
 
         // Retrieve connection details to get source ID
         var connectionResponse = await WithProgressReportingAsync(
@@ -108,7 +109,7 @@ public class AnalyticsDeployer(
                         .Select(t => new UpdateConnectionDetailsRequestConfigurationStream
                         {
                             Name = t.Name,
-                            SyncMode = syncMode,
+                            SyncMode = t.AirbyteSyncMode ?? defaultSyncMode,
                             CursorField = ["_ab_cdc_lsn"],
                             PrimaryKey = t.PrimaryKey.ColumnNames.Select(n => new[] { n }),
                             SelectedFields = _airbyteFieldNames.Concat(t.Columns.Select(c => c.Name))

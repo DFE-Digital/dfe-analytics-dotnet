@@ -79,6 +79,26 @@ public class MyDbContext : DbContext
 
 The same configuration can also be set within classes implementing `IEntityTypeConfiguration<T>`.
 
+##### Airbyte sync mode
+
+By default tables are synced using Airbyte's `Incremental | Append` sync mode (or the sync mode passed to the deploy command with `--airbyte-sync-mode`).
+The sync mode can be configured for all tables in the model, or for individual tables:
+
+```cs
+protected override void OnModelCreating(ModelBuilder modelBuilder)
+{
+    // Model-level sync mode, used for every table that doesn't specify its own
+    modelBuilder.ConfigureAnalyticsSync(AirbyteSyncMode.IncrementalAppendDeduped);
+
+    // Table-level sync mode
+    modelBuilder.Entity<MyEntity>()
+        .IncludeInAnalyticsSync(includeAllColumns: true, hidden: false, airbyteSyncMode: AirbyteSyncMode.IncrementalAppend);
+}
+```
+
+A table's sync mode takes precedence over the model's sync mode, which takes precedence over the sync mode passed to the deploy command.
+For tables mapped by an inheritance hierarchy, the table-level sync mode must be set on the root entity type.
+
 #### 4. Verify configuration file is created at publish time
 
 If all is configured correctly, whenever any of the applications in your solution that reference the DbContext are published
