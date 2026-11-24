@@ -521,6 +521,24 @@ public class IntegrationTests : IClassFixture<IntegrationTestsApplicationFactory
                     t => Assert.Equal("tag2", t));
             });
     }
+
+    [Fact]
+    public async Task MarkHttpContextWithEventSent()
+    {
+        var userId = "user-123";
+        var referer = "http://example.org/";
+        var userAgent = "TestClient";
+
+        var httpClient = _fixture.CreateClient();
+
+        var request = new HttpRequestMessage(HttpMethod.Get, "/http-context-redirect");
+        request.Headers.TryAddWithoutValidation("User-Agent", userAgent);
+        request.Headers.TryAddWithoutValidation("X-UserId", userId);
+        request.Headers.TryAddWithoutValidation("Referer", referer);
+
+        var response = await httpClient.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+    }
 }
 
 public class IntegrationTestsApplicationFactory : WebApplicationFactory<IntegrationTestsStartup>
@@ -587,6 +605,18 @@ public class IntegrationTestsStartup
 
                 ctx.Response.ContentType = "text/plain";
                 await ctx.Response.WriteAsync("Ok");
+            });
+
+            endpoints.MapGet("/http-context-redirect", async ctx =>
+            {
+                ctx.Response.ContentType = "text/plain";
+
+                if (!ctx.Items.ContainsKey("http_context_sent"))
+                {
+                    throw new InvalidOperationException("Expected ctx to contain item key \"http_context_sent\"");
+                }
+
+                await ctx.Response.WriteAsync($"Ok");
             });
         });
     }
