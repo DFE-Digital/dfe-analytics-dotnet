@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+`ConfigureAnalyticsSync()` can now be called on a `PrimitiveCollectionBuilder` as well as a `PropertyBuilder`, so collections mapped to a single column (e.g. Postgres arrays) can be configured with `PrimitiveCollection()`. From EF Core 11, a collection configured with `Property()` isn't a primitive collection, so queries such as `Contains()` on it can't be translated.
+
 ## 0.7.0
 
 `DfeAnalytics.EFCore` now has a single `net8.0` build that depends on EF Core 8.0.0 or later, so apps can use any EF Core version from 8 onwards whatever their target framework. Previously, the `net9.0` and `net10.0` builds required EF Core 9 and 10 respectively, so an app targeting .NET 10 could not stay on an older EF Core version.
