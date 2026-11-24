@@ -1,5 +1,7 @@
 using Dfe.Analytics.EFCore.Description;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Dfe.Analytics.EFCore;
@@ -54,8 +56,17 @@ public static class DbContextConfigurationExtensions
         return builder;
     }
 
+    /// <summary>
+    /// Configures how a column is synced to analytics.
+    /// </summary>
+    /// <remarks>
+    /// <paramref name="builder"/> can be a <see cref="PropertyBuilder"/> or a <see cref="PrimitiveCollectionBuilder"/>.
+    /// Configure collections mapped to a single column (e.g. Postgres arrays) with <c>PrimitiveCollection()</c> rather than
+    /// <c>Property()</c>; from EF Core 11, a collection configured with <c>Property()</c> isn't a primitive collection,
+    /// so queries such as <c>Contains()</c> on it can't be translated.
+    /// </remarks>
     public static T ConfigureAnalyticsSync<T>(this T builder, bool included = true, bool? hidden = null, string? policyTag = null)
-        where T : PropertyBuilder
+        where T : IInfrastructure<IConventionPropertyBuilder>
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -64,7 +75,9 @@ public static class DbContextConfigurationExtensions
             hidden = true;
         }
 
-        builder.HasAnnotation(
+        // Set the annotation as explicit configuration, as PropertyBuilder.HasAnnotation() does
+        var property = (IMutableProperty)builder.GetInfrastructure().Metadata;
+        property.SetAnnotation(
             AnnotationKeys.ColumnAnalyticsSyncMetadata,
             new ColumnSyncMetadata(included, hidden, policyTag ?? DefaultPolicyTagName));
 
