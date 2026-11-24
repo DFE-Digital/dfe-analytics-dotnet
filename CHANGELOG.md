@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.7.1
 
 `ConfigureAnalyticsSync()` can now be called on a `PrimitiveCollectionBuilder` as well as a `PropertyBuilder`, so collections mapped to a single column (e.g. Postgres arrays) can be configured with `PrimitiveCollection()`. From EF Core 11, a collection configured with `Property()` isn't a primitive collection, so queries such as `Contains()` on it can't be translated.
 
