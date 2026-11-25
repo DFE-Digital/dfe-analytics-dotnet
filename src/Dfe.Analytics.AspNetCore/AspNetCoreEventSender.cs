@@ -12,6 +12,7 @@ namespace Dfe.Analytics.AspNetCore;
 
 internal class AspNetCoreEventSender : IEventSender, IEventFactory
 {
+    private const string HttpContextSentMarker = "http_context_sent";
     private readonly DefaultEventFactory _innerEventFactory;
     private readonly DefaultEventSender _innerSender;
     private readonly IHttpContextAccessor _httpContextAccessor;
@@ -56,7 +57,11 @@ internal class AspNetCoreEventSender : IEventSender, IEventFactory
         }
         else
         {
-            httpContext.Response.OnCompleted(SendEventCoreAsync);
+            if (!httpContext.Items.ContainsKey(HttpContextSentMarker))
+            {
+                httpContext.Response.OnCompleted(SendEventCoreAsync);
+                httpContext.Items.Add(HttpContextSentMarker, null);
+            }
         }
 
         async Task SendEventCoreAsync()
