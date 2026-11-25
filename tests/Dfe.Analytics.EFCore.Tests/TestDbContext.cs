@@ -87,3 +87,22 @@ public class NoPendingMigrationsTestDbContext : TestDbContext
     }
 #pragma warning restore EF1001
 }
+
+/// <summary>
+/// A <see cref="DbContext"/> with a primitive collection configured for analytics sync.
+/// </summary>
+public class PrimitiveCollectionTestDbContext : DbContext
+{
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        optionsBuilder.UseNpgsql();
+    }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        var configuration = modelBuilder.Entity<EntityWithPrimitiveCollection>();
+        configuration.IncludeInAnalyticsSync(hidden: false);
+        configuration.HasKey(e => e.Id);
+        configuration.PrimitiveCollection(e => e.Tags).ConfigureAnalyticsSync(policyTag: "tags");
+    }
+}

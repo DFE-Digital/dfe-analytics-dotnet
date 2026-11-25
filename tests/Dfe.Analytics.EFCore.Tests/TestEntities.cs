@@ -35,3 +35,9 @@ public class DerivedEntity2 : BaseEntity
 
     public string? DerivedProperty2 { get; set; }
 }
+
+public class EntityWithPrimitiveCollection
+{
+    public int Id { get; set; }
+    public required string[] Tags { get; set; }
+}

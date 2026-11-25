@@ -87,6 +87,38 @@ public class AnalyticsConfigurationProviderTests
     }
 
     [Fact]
+    public void GetConfiguration_PrimitiveCollectionConfigured_UsesColumnSettings()
+    {
+        // Arrange
+        var dbContext = new PrimitiveCollectionTestDbContext();
+
+        var provider = new AnalyticsConfigurationProvider();
+
+        // Act
+        var configuration = provider.GetConfiguration(dbContext);
+
+        // Assert
+        var table = Assert.Single(configuration.Tables);
+        var column = Assert.Single(table.Columns, c => c.Name == "Tags");
+        Assert.True(column.Hidden);
+        Assert.Equal("tags", column.PolicyTag);
+    }
+
+    [Fact]
+    public void ConfigureAnalyticsSync_OnPrimitiveCollection_KeepsPropertyAsPrimitiveCollection()
+    {
+        // Arrange
+        var dbContext = new PrimitiveCollectionTestDbContext();
+
+        // Act
+        var property = dbContext.Model.FindEntityType(typeof(EntityWithPrimitiveCollection))!.FindProperty(nameof(EntityWithPrimitiveCollection.Tags))!;
+
+        // Assert
+        Assert.True(property.IsPrimitiveCollection);
+        Assert.Equal(typeof(string), property.GetElementType()?.ClrType);
+    }
+
+    [Fact]
     public void GetConfiguration_NoSyncModeConfigured_LeavesTableSyncModesUnset()
     {
         // Arrange
